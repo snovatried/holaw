@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="assets/css/login.css">
 </head>
 <body>
-    <form action="auth/validar_login.php" method="POST">
+    <form action="auth/validarlogin.php" method="POST">
         <input type="text" name="usuario" placeholder="Usuario" required>
         <input type="password" name="contra" placeholder="Contrasena" required>
         <button type="submit">Iniciar sesion</button>
