@@ -1,24 +1,19 @@
 <?php
 
-// Load environment variables from .env file
-require 'vendor/autoload.php';
-$dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
-$dotenv->load();
+$host = getenv('DB_HOST') ?: '127.0.0.1';
+$port = getenv('DB_PORT') ?: '3306';
+$dbname = getenv('DB_NAME') ?: 'dispensador_medicina';
+$user = getenv('DB_USER') ?: 'root';
+$pass = getenv('DB_PASS') ?: '';
 
-// Database configuration
-return [
-    'hostname' => getenv('DB_HOST') ?: 'localhost',
-    'username' => getenv('DB_USER') ?: 'root',
-    'password' => getenv('DB_PASS') ?: '',
-    'database' => getenv('DB_NAME') ?: 'database_name',
-    'port' => getenv('DB_PORT') ?: '3306',
-];
+$dsn = "mysql:host={$host};port={$port};dbname={$dbname};charset=utf8mb4";
 
-// ESP32 specific configurations
-if (getenv('ESP32_MODE')) {
-    return array_merge(return, [
-        'wifi_ssid' => getenv('ESP32_WIFI_SSID'),
-        'wifi_password' => getenv('ESP32_WIFI_PASS'),
-        'api_url' => getenv('ESP32_API_URL')
+try {
+    $conexion = new PDO($dsn, $user, $pass, [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
     ]);
+} catch (PDOException $e) {
+    http_response_code(500);
+    die('Error de conexion a la base de datos.');
 }
