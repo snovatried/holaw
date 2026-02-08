@@ -7,6 +7,14 @@ if (!isset($_SESSION['id_usuario'])) {
     exit;
 }
 
+$rol = $_SESSION['rol'] ?? 'paciente';
+$dashboard = '../dashboard/paciente.php';
+if ($rol === 'admin') {
+    $dashboard = '../dashboard/admin.php';
+} elseif ($rol === 'cuidador') {
+    $dashboard = '../dashboard/cuidador.php';
+}
+
 $stmt = $conexion->query('SELECT id_medicamento, nombre, tipo, dosis, cantidad_total, fecha_vencimiento FROM medicamentos ORDER BY nombre');
 $medicamentos = $stmt->fetchAll();
 ?>
@@ -26,7 +34,7 @@ $medicamentos = $stmt->fetchAll();
         <a class="btn" href="agregar.php">Agregar medicamento</a>
     </div>
 
-    <p><a href="../dashboard/admin.php">← Volver al dashboard</a></p>
+    <p><a href="<?= htmlspecialchars($dashboard, ENT_QUOTES, 'UTF-8') ?>">← Volver al dashboard</a></p>
 
     <table>
         <thead>
@@ -45,12 +53,12 @@ $medicamentos = $stmt->fetchAll();
         <?php else: ?>
             <?php foreach ($medicamentos as $m): ?>
             <tr>
-                <td><?= htmlspecialchars((string)$m['id_medicamento']) ?></td>
+                <td><?= htmlspecialchars((string) $m['id_medicamento']) ?></td>
                 <td><?= htmlspecialchars($m['nombre']) ?></td>
-                <td><?= htmlspecialchars((string)$m['tipo']) ?></td>
-                <td><?= htmlspecialchars((string)$m['dosis']) ?></td>
-                <td><?= htmlspecialchars((string)$m['cantidad_total']) ?></td>
-                <td><?= htmlspecialchars((string)$m['fecha_vencimiento']) ?></td>
+                <td><?= htmlspecialchars((string) $m['tipo']) ?></td>
+                <td><?= htmlspecialchars((string) $m['dosis']) ?></td>
+                <td><?= htmlspecialchars((string) $m['cantidad_total']) ?></td>
+                <td><?= htmlspecialchars((string) $m['fecha_vencimiento']) ?></td>
             </tr>
             <?php endforeach; ?>
         <?php endif; ?>

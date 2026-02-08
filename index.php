@@ -1,3 +1,7 @@
+<?php
+$googleClientId = getenv('GOOGLE_CLIENT_ID') ?: '';
+$showError = isset($_GET['error']);
+?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -13,7 +17,7 @@
         <section class="card login-card">
             <h1 class="login-title">Dispensador de Medicina</h1>
 
-            <?php if (isset($_GET['error'])): ?>
+            <?php if ($showError): ?>
                 <div class="alert alert-error">Usuario o contraseña incorrectos.</div>
             <?php endif; ?>
 
@@ -29,11 +33,12 @@
 
             <div class="oauth-divider">o inicia con Google</div>
 
-            <div id="g_id_onload"
-                data-client_id="<?= htmlspecialchars(getenv('GOOGLE_CLIENT_ID') ?: '', ENT_QUOTES, 'UTF-8') ?>"
+            <div
+                id="g_id_onload"
+                data-client_id="<?= htmlspecialchars($googleClientId, ENT_QUOTES, 'UTF-8') ?>"
                 data-callback="handleGoogleCredential"
-                data-auto_prompt="false">
-            </div>
+                data-auto_prompt="false"
+            ></div>
             <div class="g_id_signin" data-type="standard" data-width="360"></div>
         </section>
     </main>

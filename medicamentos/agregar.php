@@ -4,6 +4,14 @@ if (!isset($_SESSION['id_usuario'])) {
     header('Location: ../index.php');
     exit;
 }
+
+$rol = $_SESSION['rol'] ?? 'paciente';
+$dashboard = '../dashboard/paciente.php';
+if ($rol === 'admin') {
+    $dashboard = '../dashboard/admin.php';
+} elseif ($rol === 'cuidador') {
+    $dashboard = '../dashboard/cuidador.php';
+}
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -18,7 +26,11 @@ if (!isset($_SESSION['id_usuario'])) {
 <div class="container">
     <div class="card">
         <h1>Agregar medicamento</h1>
-        <p><a href="listar.php">← Ver listado</a></p>
+        <p>
+            <a href="listar.php">← Ver listado</a>
+            &nbsp;|&nbsp;
+            <a href="<?= htmlspecialchars($dashboard, ENT_QUOTES, 'UTF-8') ?>">Volver al dashboard</a>
+        </p>
 
         <label for="medicamento_api">Medicamento (API externa, sin jarabes)</label>
         <select id="medicamento_api">
