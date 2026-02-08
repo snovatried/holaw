@@ -56,16 +56,11 @@ if (!$usuarioDB) {
 $_SESSION['id_usuario'] = $usuarioDB['id_usuario'];
 $_SESSION['rol'] = $usuarioDB['rol'];
 
-$basePath = rtrim(dirname(dirname($_SERVER['SCRIPT_NAME'] ?? '')), '/\\');
-if ($basePath === '') {
-    $basePath = '';
-}
-
-$redirect = $basePath . '/dashboard/paciente.php';
+$redirect = '../dashboard/paciente.php';
 if ($usuarioDB['rol'] === 'admin') {
-    $redirect = $basePath . '/dashboard/admin.php';
+    $redirect = '../dashboard/admin.php';
 } elseif ($usuarioDB['rol'] === 'cuidador') {
-    $redirect = $basePath . '/dashboard/cuidador.php';
+    $redirect = '../dashboard/cuidador.php';
 }
 
 echo json_encode(['redirect' => $redirect]);
