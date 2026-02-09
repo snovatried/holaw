@@ -90,6 +90,46 @@ SetEnv GOOGLE_CLIENT_ID "TU_CLIENT_ID.apps.googleusercontent.com"
 
 ---
 
+
+## 5.1) Migración recomendada para cuidador/paciente (próximos medicamentos)
+
+Para que el cuidador vea los próximos medicamentos **de sus pacientes** (no solo propios), agrega relación cuidador-paciente y paciente objetivo en programación.
+
+Ejecuta en phpMyAdmin SQL:
+
+```sql
+ALTER TABLE programacion
+  ADD COLUMN id_paciente INT NULL AFTER id_usuario,
+  ADD INDEX idx_programacion_id_paciente (id_paciente),
+  ADD CONSTRAINT fk_programacion_paciente
+    FOREIGN KEY (id_paciente) REFERENCES usuarios(id_usuario);
+
+CREATE TABLE IF NOT EXISTS cuidadores_pacientes (
+  id_relacion INT AUTO_INCREMENT PRIMARY KEY,
+  id_cuidador INT NOT NULL,
+  id_paciente INT NOT NULL,
+  fecha_asignacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_cuidador_paciente (id_cuidador, id_paciente),
+  CONSTRAINT fk_cp_cuidador FOREIGN KEY (id_cuidador) REFERENCES usuarios(id_usuario),
+  CONSTRAINT fk_cp_paciente FOREIGN KEY (id_paciente) REFERENCES usuarios(id_usuario)
+);
+```
+
+> Sin esta migración el sistema entra en modo legado: funciona, pero el cuidador ve su propia programación y no la de pacientes asignados.
+
+
+### Opción sin phpMyAdmin (recomendada)
+
+Ahora puedes hacer esta configuración desde la web como admin:
+
+1. Inicia sesión como `admin`.
+2. Ve a **Asignar pacientes a cuidadores**.
+3. Si aparece aviso de migración, pulsa **Aplicar migración automáticamente**.
+4. Selecciona cuidador y paciente, luego **Guardar asignación**.
+
+Con eso ya no necesitas crear relaciones manualmente en phpMyAdmin.
+
+
 ## 6) Abrir el sistema
 
 Con Apache y MySQL activos, entra a:

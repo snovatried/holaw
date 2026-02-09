@@ -7,25 +7,41 @@ if (!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'cuidador') {
     exit;
 }
 
-$sql = "
-SELECT
-    p.hora_dispenso,
-    p.frecuencia,
-    p.cantidad,
-    m.nombre AS medicamento,
-    m.dosis
-FROM programacion p
-JOIN medicamentos m ON p.id_medicamento = m.id_medicamento
-WHERE p.id_usuario = ?
-  AND p.estado = 'activo'
-ORDER BY
-  CASE WHEN p.hora_dispenso >= CURTIME() THEN 0 ELSE 1 END,
-  p.hora_dispenso ASC
-LIMIT 10
-";
+$hasIdPaciente = false;
+$checkColumn = $conexion->query("SHOW COLUMNS FROM programacion LIKE 'id_paciente'");
+if ($checkColumn && $checkColumn->fetch()) {
+    $hasIdPaciente = true;
+}
 
-$stmt = $conexion->prepare($sql);
-$stmt->execute([$_SESSION['id_usuario']]);
+$hasRelTable = (bool) $conexion->query("SHOW TABLES LIKE 'cuidadores_pacientes'")->fetch();
+$modoLegacy = !$hasIdPaciente || !$hasRelTable;
+
+if ($modoLegacy) {
+    $sql = "
+        SELECT p.hora_dispenso, p.frecuencia, p.cantidad, m.nombre AS medicamento, m.dosis, 'Mi programación' AS paciente
+        FROM programacion p
+        JOIN medicamentos m ON p.id_medicamento = m.id_medicamento
+        WHERE p.id_usuario = ? AND p.estado = 'activo'
+        ORDER BY CASE WHEN p.hora_dispenso >= CURTIME() THEN 0 ELSE 1 END, p.hora_dispenso ASC
+        LIMIT 10
+    ";
+    $stmt = $conexion->prepare($sql);
+    $stmt->execute([$_SESSION['id_usuario']]);
+} else {
+    $sql = "
+        SELECT p.hora_dispenso, p.frecuencia, p.cantidad, m.nombre AS medicamento, m.dosis, u.nombre AS paciente
+        FROM programacion p
+        JOIN medicamentos m ON p.id_medicamento = m.id_medicamento
+        JOIN cuidadores_pacientes cp ON cp.id_paciente = p.id_paciente
+        JOIN usuarios u ON u.id_usuario = p.id_paciente
+        WHERE cp.id_cuidador = ? AND p.estado = 'activo'
+        ORDER BY CASE WHEN p.hora_dispenso >= CURTIME() THEN 0 ELSE 1 END, p.hora_dispenso ASC
+        LIMIT 10
+    ";
+    $stmt = $conexion->prepare($sql);
+    $stmt->execute([$_SESSION['id_usuario']]);
+}
+
 $proximos = $stmt->fetchAll();
 ?>
 <!DOCTYPE html>
@@ -50,11 +66,16 @@ $proximos = $stmt->fetchAll();
         <li><a href="../historial/ver.php">Ver historial</a></li>
     </ul>
 
+    <?php if ($modoLegacy): ?>
+        <div class="alert alert-error" style="margin-top:16px;">Modo legado activo: para ver próximos medicamentos por paciente, aplica la migración de BD en README.</div>
+    <?php endif; ?>
+
     <section class="card" style="margin-top: 16px;">
         <h2>Próximos medicamentos</h2>
         <table>
             <thead>
                 <tr>
+                    <th>Paciente</th>
                     <th>Hora</th>
                     <th>Medicamento</th>
                     <th>Dosis</th>
@@ -64,10 +85,11 @@ $proximos = $stmt->fetchAll();
             </thead>
             <tbody>
             <?php if (count($proximos) === 0): ?>
-                <tr><td colspan="5">No hay medicamentos programados.</td></tr>
+                <tr><td colspan="6">No hay medicamentos programados.</td></tr>
             <?php else: ?>
                 <?php foreach ($proximos as $p): ?>
                 <tr>
+                    <td><?= htmlspecialchars((string) $p['paciente']) ?></td>
                     <td><?= htmlspecialchars((string) $p['hora_dispenso']) ?></td>
                     <td><?= htmlspecialchars((string) $p['medicamento']) ?></td>
                     <td><?= htmlspecialchars((string) ($p['dosis'] ?: 'No especificada')) ?></td>

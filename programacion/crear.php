@@ -9,9 +9,37 @@ if (!isset($_SESSION['id_usuario']) || !in_array($_SESSION['rol'] ?? '', ['admin
 
 $rol = $_SESSION['rol'];
 $dashboard = $rol === 'admin' ? '../dashboard/admin.php' : '../dashboard/cuidador.php';
+$showSuccess = isset($_GET['ok']);
+
+$hasIdPaciente = false;
+$checkColumn = $conexion->query("SHOW COLUMNS FROM programacion LIKE 'id_paciente'");
+if ($checkColumn && $checkColumn->fetch()) {
+    $hasIdPaciente = true;
+}
 
 $medicamentos = $conexion->query('SELECT id_medicamento, nombre, dosis FROM medicamentos ORDER BY nombre')->fetchAll();
-$showSuccess = isset($_GET['ok']);
+$pacientes = [];
+
+if ($hasIdPaciente) {
+    if ($rol === 'admin') {
+        $stmtPacientes = $conexion->query("SELECT id_usuario, nombre FROM usuarios WHERE rol = 'paciente' AND estado = 'activo' ORDER BY nombre");
+        $pacientes = $stmtPacientes->fetchAll();
+    } else {
+        $hasRelTable = $conexion->query("SHOW TABLES LIKE 'cuidadores_pacientes'")->fetch();
+        if ($hasRelTable) {
+            $sqlPacientes = "
+                SELECT u.id_usuario, u.nombre
+                FROM cuidadores_pacientes cp
+                JOIN usuarios u ON u.id_usuario = cp.id_paciente
+                WHERE cp.id_cuidador = ? AND u.estado = 'activo'
+                ORDER BY u.nombre
+            ";
+            $stmtPacientes = $conexion->prepare($sqlPacientes);
+            $stmtPacientes->execute([$_SESSION['id_usuario']]);
+            $pacientes = $stmtPacientes->fetchAll();
+        }
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -32,7 +60,21 @@ $showSuccess = isset($_GET['ok']);
             <div class="alert alert-success">Programación guardada correctamente.</div>
         <?php endif; ?>
 
+        <?php if (!$hasIdPaciente): ?>
+            <div class="alert alert-error">Falta actualizar la BD para programar por paciente. Revisa README (migración SQL).</div>
+        <?php endif; ?>
+
         <form action="guardar.php" method="POST" onsubmit="return validarCantidad();">
+            <?php if ($hasIdPaciente): ?>
+                <label for="id_paciente">Paciente</label>
+                <select id="id_paciente" name="id_paciente" required>
+                    <option value="">Selecciona un paciente</option>
+                    <?php foreach ($pacientes as $p): ?>
+                        <option value="<?= (int) $p['id_usuario'] ?>"><?= htmlspecialchars($p['nombre']) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            <?php endif; ?>
+
             <label for="id_medicamento">Medicamento</label>
             <select id="id_medicamento" name="id_medicamento" required>
                 <option value="">Selecciona uno</option>

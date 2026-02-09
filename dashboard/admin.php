@@ -25,6 +25,7 @@ if (!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'admin') {
         <li><a href="../medicamentos/listar.php">Gestionar medicamentos</a></li>
         <li><a href="../medicamentos/agregar.php">Agregar medicamento</a></li>
         <li><a href="../programacion/crear.php">Programar dispensos</a></li>
+        <li><a href="../asignaciones/gestionar.php">Asignar pacientes a cuidadores</a></li>
         <li><a href="../historial/ver.php">Ver historial</a></li>
     </ul>
 </div>
