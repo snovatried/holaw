@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1:33066
--- Tiempo de generación: 11-01-2026 a las 19:35:57
+-- Tiempo de generación: 09-02-2026 a las 01:21:54
 -- Versión del servidor: 10.4.32-MariaDB
 -- Versión de PHP: 8.2.12
 
@@ -138,6 +138,15 @@ CREATE TABLE `usuarios` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
+-- Volcado de datos para la tabla `usuarios`
+--
+
+INSERT INTO `usuarios` (`id_usuario`, `nombre`, `usuario`, `contrasena`, `rol`, `estado`, `fecha_creacion`) VALUES
+(1, 'admin', 'admin', '$2y$10$4a/o.VktrQUQCz1kzlAqqOdhzbXdW9fJLl6I53s5965A.zZrKGCHe', 'admin', 'activo', '2026-01-14 00:52:12'),
+(7, 'paciente', 'paciente', '$2y$10$Ockdr8xhP8hxpZdQNX19tuKHIm0pHoovrZORqU.kqPiVdSqlrnJYy', 'paciente', 'activo', '2026-02-09 00:18:19'),
+(8, 'cuidador', 'cuidador', '$2y$10$.GRnU46u/x5B7fOg2RfUZusraFaWzpPi11em9HxQtYyWBUjdBXbWa', 'cuidador', 'activo', '2026-02-09 00:18:19');
+
+--
 -- Índices para tablas volcadas
 --
 
@@ -245,7 +254,7 @@ ALTER TABLE `tipos_medicamento`
 -- AUTO_INCREMENT de la tabla `usuarios`
 --
 ALTER TABLE `usuarios`
-  MODIFY `id_usuario` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id_usuario` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- Restricciones para tablas volcadas
