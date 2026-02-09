@@ -1,9 +1,32 @@
 <?php
 session_start();
+require '../config/conexion.php';
+
 if (!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'cuidador') {
     header('Location: ../index.php');
     exit;
 }
+
+$sql = "
+SELECT
+    p.hora_dispenso,
+    p.frecuencia,
+    p.cantidad,
+    m.nombre AS medicamento,
+    m.dosis
+FROM programacion p
+JOIN medicamentos m ON p.id_medicamento = m.id_medicamento
+WHERE p.id_usuario = ?
+  AND p.estado = 'activo'
+ORDER BY
+  CASE WHEN p.hora_dispenso >= CURTIME() THEN 0 ELSE 1 END,
+  p.hora_dispenso ASC
+LIMIT 10
+";
+
+$stmt = $conexion->prepare($sql);
+$stmt->execute([$_SESSION['id_usuario']]);
+$proximos = $stmt->fetchAll();
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -26,6 +49,36 @@ if (!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'cuidador') {
         <li><a href="../programacion/crear.php">Programar medicamentos</a></li>
         <li><a href="../historial/ver.php">Ver historial</a></li>
     </ul>
+
+    <section class="card" style="margin-top: 16px;">
+        <h2>Próximos medicamentos</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Hora</th>
+                    <th>Medicamento</th>
+                    <th>Dosis</th>
+                    <th>Cantidad</th>
+                    <th>Frecuencia</th>
+                </tr>
+            </thead>
+            <tbody>
+            <?php if (count($proximos) === 0): ?>
+                <tr><td colspan="5">No hay medicamentos programados.</td></tr>
+            <?php else: ?>
+                <?php foreach ($proximos as $p): ?>
+                <tr>
+                    <td><?= htmlspecialchars((string) $p['hora_dispenso']) ?></td>
+                    <td><?= htmlspecialchars((string) $p['medicamento']) ?></td>
+                    <td><?= htmlspecialchars((string) ($p['dosis'] ?: 'No especificada')) ?></td>
+                    <td><?= htmlspecialchars((string) $p['cantidad']) ?></td>
+                    <td><?= htmlspecialchars((string) ($p['frecuencia'] ?: 'No especificada')) ?></td>
+                </tr>
+                <?php endforeach; ?>
+            <?php endif; ?>
+            </tbody>
+        </table>
+    </section>
 </div>
 </body>
 </html>

@@ -17,6 +17,7 @@ if ($rol === 'admin') {
 
 $stmt = $conexion->query('SELECT id_medicamento, nombre, tipo, dosis, cantidad_total, fecha_vencimiento FROM medicamentos ORDER BY nombre');
 $medicamentos = $stmt->fetchAll();
+$showSuccess = isset($_GET['ok']);
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -33,6 +34,10 @@ $medicamentos = $stmt->fetchAll();
         <h1>Listado de medicamentos</h1>
         <a class="btn" href="agregar.php">Agregar medicamento</a>
     </div>
+
+    <?php if ($showSuccess): ?>
+        <div class="alert alert-success">Medicamento guardado correctamente.</div>
+    <?php endif; ?>
 
     <p><a href="<?= htmlspecialchars($dashboard, ENT_QUOTES, 'UTF-8') ?>">← Volver al dashboard</a></p>
 

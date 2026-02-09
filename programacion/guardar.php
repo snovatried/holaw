@@ -2,7 +2,7 @@
 session_start();
 require '../config/conexion.php';
 
-if (!isset($_SESSION['id_usuario'])) {
+if (!isset($_SESSION['id_usuario']) || !in_array($_SESSION['rol'] ?? '', ['admin', 'cuidador'], true)) {
     header('Location: ../index.php');
     exit;
 }
@@ -17,5 +17,5 @@ $stmt->execute([
     $_POST['cantidad'],
 ]);
 
-header('Location: crear.php');
+header('Location: crear.php?ok=1');
 exit;
