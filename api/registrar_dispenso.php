@@ -22,7 +22,7 @@ $sql = "INSERT INTO historial_dispenso
 VALUES (?, CURDATE(), CURTIME(), ?, ?)";
 
 try {
-    $stmt = $conexion->prepare($sql);
+    $stmt = $pdo->prepare($sql);
     $stmt->execute([
         $id_programacion,
         $resultado,

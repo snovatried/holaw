@@ -8,7 +8,7 @@ if (!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'paciente') {
 }
 
 $hasIdPaciente = false;
-$checkColumn = $conexion->query("SHOW COLUMNS FROM programacion LIKE 'id_paciente'");
+$checkColumn = $pdo->query("SHOW COLUMNS FROM programacion LIKE 'id_paciente'");
 if ($checkColumn && $checkColumn->fetch()) {
     $hasIdPaciente = true;
 }
@@ -22,7 +22,7 @@ if ($hasIdPaciente) {
         ORDER BY CASE WHEN p.hora_dispenso >= CURTIME() THEN 0 ELSE 1 END, p.hora_dispenso ASC
         LIMIT 10
     ";
-    $stmt = $conexion->prepare($sql);
+    $stmt = $pdo->prepare($sql);
     $stmt->execute([$_SESSION['id_usuario'], $_SESSION['id_usuario']]);
 } else {
     $sql = "
@@ -33,7 +33,7 @@ if ($hasIdPaciente) {
         ORDER BY CASE WHEN p.hora_dispenso >= CURTIME() THEN 0 ELSE 1 END, p.hora_dispenso ASC
         LIMIT 10
     ";
-    $stmt = $conexion->prepare($sql);
+    $stmt = $pdo->prepare($sql);
     $stmt->execute([$_SESSION['id_usuario']]);
 }
 $proximos = $stmt->fetchAll();

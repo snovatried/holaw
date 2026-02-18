@@ -6,7 +6,7 @@ $usuario = $_POST['usuario'] ?? '';
 $contrasena = $_POST['contra'] ?? '';
 
 $sql = "SELECT * FROM usuarios WHERE usuario = ? AND estado = 'activo' LIMIT 1";
-$stmt = $conexion->prepare($sql);
+$stmt = $pdo->prepare($sql);
 $stmt->execute([$usuario]);
 $usuarioDB = $stmt->fetch(PDO::FETCH_ASSOC);
 

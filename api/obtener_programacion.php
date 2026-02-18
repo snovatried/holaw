@@ -14,7 +14,7 @@ WHERE p.hora_dispenso = CURTIME()
 AND p.estado = 'activo'
 ";
 
-$stmt = $conexion->prepare($sql);
+$stmt = $pdo->prepare($sql);
 $stmt->execute();
 
 $resultado = $stmt->fetchAll(PDO::FETCH_ASSOC);

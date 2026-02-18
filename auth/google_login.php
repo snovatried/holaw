@@ -36,17 +36,17 @@ if ($clientId && (($tokenInfo['aud'] ?? '') !== $clientId)) {
 $email = $tokenInfo['email'];
 $nombre = $tokenInfo['name'] ?? $email;
 
-$stmt = $conexion->prepare("SELECT * FROM usuarios WHERE usuario = ? AND estado = 'activo' LIMIT 1");
+$stmt = $pdo->prepare("SELECT * FROM usuarios WHERE usuario = ? AND estado = 'activo' LIMIT 1");
 $stmt->execute([$email]);
 $usuarioDB = $stmt->fetch();
 
 if (!$usuarioDB) {
     $passwordRandom = password_hash(bin2hex(random_bytes(16)), PASSWORD_DEFAULT);
 
-    $insert = $conexion->prepare('INSERT INTO usuarios (nombre, usuario, contrasena, rol, estado) VALUES (?, ?, ?, ?, ?)');
+    $insert = $pdo->prepare('INSERT INTO usuarios (nombre, usuario, contrasena, rol, estado) VALUES (?, ?, ?, ?, ?)');
     $insert->execute([$nombre, $email, $passwordRandom, 'paciente', 'activo']);
 
-    $idUsuario = $conexion->lastInsertId();
+    $idUsuario = $pdo->lastInsertId();
     $usuarioDB = [
         'id_usuario' => $idUsuario,
         'rol' => 'paciente',

@@ -8,7 +8,7 @@ SET estado = 'conectado',
     ultimo_ping = NOW()
 WHERE id_configuracion = 1";
 
-$conexion->prepare($sql)->execute();
+$pdo->prepare($sql)->execute();
 
 echo json_encode([
     "estado" => "online"

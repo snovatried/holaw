@@ -8,7 +8,7 @@ if (!isset($_SESSION['id_usuario']) || !in_array($_SESSION['rol'] ?? '', ['admin
 }
 
 $hasIdPaciente = false;
-$checkColumn = $conexion->query("SHOW COLUMNS FROM programacion LIKE 'id_paciente'");
+$checkColumn = $pdo->query("SHOW COLUMNS FROM programacion LIKE 'id_paciente'");
 if ($checkColumn && $checkColumn->fetch()) {
     $hasIdPaciente = true;
 }
@@ -21,7 +21,7 @@ if ($hasIdPaciente) {
     }
 
     $sql = 'INSERT INTO programacion (id_usuario, id_paciente, id_medicamento, hora_dispenso, frecuencia, cantidad) VALUES (?, ?, ?, ?, ?, ?)';
-    $stmt = $conexion->prepare($sql);
+    $stmt = $pdo->prepare($sql);
     $stmt->execute([
         $_SESSION['id_usuario'],
         $idPaciente,
@@ -32,7 +32,7 @@ if ($hasIdPaciente) {
     ]);
 } else {
     $sql = 'INSERT INTO programacion (id_usuario, id_medicamento, hora_dispenso, frecuencia, cantidad) VALUES (?, ?, ?, ?, ?)';
-    $stmt = $conexion->prepare($sql);
+    $stmt = $pdo->prepare($sql);
     $stmt->execute([
         $_SESSION['id_usuario'],
         $_POST['id_medicamento'],

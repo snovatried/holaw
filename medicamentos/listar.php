@@ -15,7 +15,7 @@ if ($rol === 'admin') {
     $dashboard = '../dashboard/cuidador.php';
 }
 
-$stmt = $conexion->query('SELECT id_medicamento, nombre, tipo, dosis, cantidad_total, fecha_vencimiento FROM medicamentos ORDER BY nombre');
+$stmt = $pdo->query('SELECT id_medicamento, nombre, tipo, dosis, cantidad_total, fecha_vencimiento FROM medicamentos ORDER BY nombre');
 $medicamentos = $stmt->fetchAll();
 $showSuccess = isset($_GET['ok']);
 ?>

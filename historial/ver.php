@@ -28,7 +28,7 @@ JOIN medicamentos m ON p.id_medicamento = m.id_medicamento
 ORDER BY h.fecha DESC, h.hora DESC
 ";
 
-$stmt = $conexion->prepare($sql);
+$stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $historial = $stmt->fetchAll();
 

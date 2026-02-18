@@ -8,7 +8,7 @@ if (!isset($_SESSION['id_usuario']) || !in_array($_SESSION['rol'] ?? '', ['admin
 }
 
 $sql = 'INSERT INTO medicamentos (nombre, tipo, dosis, cantidad_total, fecha_vencimiento) VALUES (?, ?, ?, ?, ?)';
-$stmt = $conexion->prepare($sql);
+$stmt = $pdo->prepare($sql);
 $stmt->execute([
     $_POST['nombre'],
     $_POST['tipo'],

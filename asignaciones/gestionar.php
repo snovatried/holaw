@@ -10,14 +10,14 @@ if (!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'admin') {
 $mensaje = '';
 $error = '';
 
-function columnaExiste(PDO $conexion, string $tabla, string $columna): bool {
-    $stmt = $conexion->prepare("SHOW COLUMNS FROM {$tabla} LIKE ?");
+function columnaExiste(PDO $pdo, string $tabla, string $columna): bool {
+    $stmt = $pdo->prepare("SHOW COLUMNS FROM {$tabla} LIKE ?");
     $stmt->execute([$columna]);
     return (bool) $stmt->fetch();
 }
 
-function tablaExiste(PDO $conexion, string $tabla): bool {
-    $stmt = $conexion->prepare('SHOW TABLES LIKE ?');
+function tablaExiste(PDO $pdo, string $tabla): bool {
+    $stmt = $pdo->prepare('SHOW TABLES LIKE ?');
     $stmt->execute([$tabla]);
     return (bool) $stmt->fetch();
 }
@@ -27,13 +27,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($accion === 'migrar') {
         try {
-            if (!columnaExiste($conexion, 'programacion', 'id_paciente')) {
-                $conexion->exec('ALTER TABLE programacion ADD COLUMN id_paciente INT NULL AFTER id_usuario');
-                $conexion->exec('ALTER TABLE programacion ADD INDEX idx_programacion_id_paciente (id_paciente)');
-                $conexion->exec('ALTER TABLE programacion ADD CONSTRAINT fk_programacion_paciente FOREIGN KEY (id_paciente) REFERENCES usuarios(id_usuario)');
+            if (!columnaExiste($pdo, 'programacion', 'id_paciente')) {
+                $pdo->exec('ALTER TABLE programacion ADD COLUMN id_paciente INT NULL AFTER id_usuario');
+                $pdo->exec('ALTER TABLE programacion ADD INDEX idx_programacion_id_paciente (id_paciente)');
+                $pdo->exec('ALTER TABLE programacion ADD CONSTRAINT fk_programacion_paciente FOREIGN KEY (id_paciente) REFERENCES usuarios(id_usuario)');
             }
 
-            $conexion->exec("CREATE TABLE IF NOT EXISTS cuidadores_pacientes (
+            $pdo->exec("CREATE TABLE IF NOT EXISTS cuidadores_pacientes (
                 id_relacion INT AUTO_INCREMENT PRIMARY KEY,
                 id_cuidador INT NOT NULL,
                 id_paciente INT NOT NULL,
@@ -55,22 +55,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($idCuidador <= 0 || $idPaciente <= 0) {
             $error = 'Selecciona cuidador y paciente.';
-        } elseif (!tablaExiste($conexion, 'cuidadores_pacientes')) {
+        } elseif (!tablaExiste($pdo, 'cuidadores_pacientes')) {
             $error = 'Primero debes aplicar la migración.';
         } else {
-            $stmt = $conexion->prepare('INSERT IGNORE INTO cuidadores_pacientes (id_cuidador, id_paciente) VALUES (?, ?)');
+            $stmt = $pdo->prepare('INSERT IGNORE INTO cuidadores_pacientes (id_cuidador, id_paciente) VALUES (?, ?)');
             $stmt->execute([$idCuidador, $idPaciente]);
             $mensaje = 'Asignación guardada.';
         }
     }
 }
 
-$tablaRelExiste = tablaExiste($conexion, 'cuidadores_pacientes');
-$colPacienteExiste = columnaExiste($conexion, 'programacion', 'id_paciente');
+$tablaRelExiste = tablaExiste($pdo, 'cuidadores_pacientes');
+$colPacienteExiste = columnaExiste($pdo, 'programacion', 'id_paciente');
 $migracionLista = $tablaRelExiste && $colPacienteExiste;
 
-$cuidadorStmt = $conexion->query("SELECT id_usuario, nombre FROM usuarios WHERE rol = 'cuidador' AND estado = 'activo' ORDER BY nombre");
-$pacienteStmt = $conexion->query("SELECT id_usuario, nombre FROM usuarios WHERE rol = 'paciente' AND estado = 'activo' ORDER BY nombre");
+$cuidadorStmt = $pdo->query("SELECT id_usuario, nombre FROM usuarios WHERE rol = 'cuidador' AND estado = 'activo' ORDER BY nombre");
+$pacienteStmt = $pdo->query("SELECT id_usuario, nombre FROM usuarios WHERE rol = 'paciente' AND estado = 'activo' ORDER BY nombre");
 $cuidadorList = $cuidadorStmt->fetchAll();
 $pacienteList = $pacienteStmt->fetchAll();
 
@@ -83,7 +83,7 @@ if ($tablaRelExiste) {
         JOIN usuarios p ON p.id_usuario = cp.id_paciente
         ORDER BY c.nombre, p.nombre
     ";
-    $asignaciones = $conexion->query($asigSql)->fetchAll();
+    $asignaciones = $pdo->query($asigSql)->fetchAll();
 }
 ?>
 <!DOCTYPE html>

@@ -12,20 +12,20 @@ $dashboard = $rol === 'admin' ? '../dashboard/admin.php' : '../dashboard/cuidado
 $showSuccess = isset($_GET['ok']);
 
 $hasIdPaciente = false;
-$checkColumn = $conexion->query("SHOW COLUMNS FROM programacion LIKE 'id_paciente'");
+$checkColumn = $pdo->query("SHOW COLUMNS FROM programacion LIKE 'id_paciente'");
 if ($checkColumn && $checkColumn->fetch()) {
     $hasIdPaciente = true;
 }
 
-$medicamentos = $conexion->query('SELECT id_medicamento, nombre, dosis FROM medicamentos ORDER BY nombre')->fetchAll();
+$medicamentos = $pdo->query('SELECT id_medicamento, nombre, dosis FROM medicamentos ORDER BY nombre')->fetchAll();
 $pacientes = [];
 
 if ($hasIdPaciente) {
     if ($rol === 'admin') {
-        $stmtPacientes = $conexion->query("SELECT id_usuario, nombre FROM usuarios WHERE rol = 'paciente' AND estado = 'activo' ORDER BY nombre");
+        $stmtPacientes = $pdo->query("SELECT id_usuario, nombre FROM usuarios WHERE rol = 'paciente' AND estado = 'activo' ORDER BY nombre");
         $pacientes = $stmtPacientes->fetchAll();
     } else {
-        $hasRelTable = $conexion->query("SHOW TABLES LIKE 'cuidadores_pacientes'")->fetch();
+        $hasRelTable = $pdo->query("SHOW TABLES LIKE 'cuidadores_pacientes'")->fetch();
         if ($hasRelTable) {
             $sqlPacientes = "
                 SELECT u.id_usuario, u.nombre
@@ -34,7 +34,7 @@ if ($hasIdPaciente) {
                 WHERE cp.id_cuidador = ? AND u.estado = 'activo'
                 ORDER BY u.nombre
             ";
-            $stmtPacientes = $conexion->prepare($sqlPacientes);
+            $stmtPacientes = $pdo->prepare($sqlPacientes);
             $stmtPacientes->execute([$_SESSION['id_usuario']]);
             $pacientes = $stmtPacientes->fetchAll();
         }
