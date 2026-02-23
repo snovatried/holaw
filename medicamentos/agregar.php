@@ -36,7 +36,7 @@ if ($rol === 'admin') {
             Catálogo conectado: selecciona un medicamento de la API y se autocompletará el formulario.
         </div>
 
-        <label for="medicamento_api">Medicamento (API externa, sin jarabes)</label>
+        <label for="medicamento_api">Medicamento</label>
         <select id="medicamento_api" style="margin-bottom: 12px;">
             <option value="">Cargando medicamentos...</option>
         </select>
