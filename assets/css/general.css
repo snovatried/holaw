@@ -26,6 +26,10 @@ body {
         linear-gradient(150deg, #030712 0%, #0b1224 48%, #111827 100%);
 }
 
+body.dark-fixed {
+    background-color: #030712;
+}
+
 .container {
     max-width: 1080px;
     margin: 32px auto;
