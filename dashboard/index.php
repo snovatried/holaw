@@ -117,7 +117,7 @@ $logoDisponible = file_exists(__DIR__ . '/../assets/img/logo.png');
     <link rel="stylesheet" href="../assets/css/general.css">
     <link rel="stylesheet" href="../assets/css/dashboard.css">
 </head>
-<body data-theme="dark">
+<body>
 <div class="container">
     <div class="topbar card">
         <div class="topbar-main">
@@ -134,7 +134,6 @@ $logoDisponible = file_exists(__DIR__ . '/../assets/img/logo.png');
             </div>
         </div>
         <div class="topbar-actions">
-            <button type="button" class="btn" id="theme-toggle">Modo claro</button>
             <a class="btn btn-secondary" href="../auth/logout.php">Cerrar sesión</a>
         </div>
     </div>
@@ -187,25 +186,6 @@ $logoDisponible = file_exists(__DIR__ . '/../assets/img/logo.png');
         </section>
     <?php endif; ?>
 </div>
-<script>
-(() => {
-    const root = document.body;
-    const toggleBtn = document.getElementById('theme-toggle');
-    const savedTheme = localStorage.getItem('ui-theme');
 
-    const applyTheme = (theme) => {
-        root.setAttribute('data-theme', theme);
-        toggleBtn.textContent = theme === 'dark' ? 'Modo claro' : 'Modo oscuro';
-    };
-
-    applyTheme(savedTheme === 'light' ? 'light' : 'dark');
-
-    toggleBtn.addEventListener('click', () => {
-        const nextTheme = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-        localStorage.setItem('ui-theme', nextTheme);
-        applyTheme(nextTheme);
-    });
-})();
-</script>
 </body>
 </html>

@@ -62,11 +62,6 @@
     border: 1px solid rgba(56, 189, 248, 0.45);
 }
 
-body[data-theme='light'] .role-chip {
-    background: rgba(2, 132, 199, 0.12);
-    color: #075985;
-    border-color: rgba(2, 132, 199, 0.35);
-}
 
 .nav-links {
     list-style: none;
@@ -89,20 +84,12 @@ body[data-theme='light'] .role-chip {
     text-decoration: none;
 }
 
-body[data-theme='light'] .nav-links li a {
-    background: linear-gradient(145deg, rgba(255, 255, 255, 0.94), rgba(241, 245, 249, 0.9));
-    color: #0f172a;
-    border-color: rgba(100, 116, 139, 0.25);
-}
 
 .nav-links li a strong {
     color: #7dd3fc;
     font-size: 0.96rem;
 }
 
-body[data-theme='light'] .nav-links li a strong {
-    color: #0c4a6e;
-}
 
 .nav-links li a span {
     color: #cbd5e1;
@@ -110,9 +97,6 @@ body[data-theme='light'] .nav-links li a strong {
     line-height: 1.35;
 }
 
-body[data-theme='light'] .nav-links li a span {
-    color: #334155;
-}
 
 .nav-links li a:hover {
     transform: translateY(-1px);
