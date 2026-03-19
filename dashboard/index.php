@@ -108,8 +108,6 @@ if ($rol === 'admin') {
 $customLogoPath = '../assets/img/logo.png';
 $logoDisponible = file_exists(__DIR__ . '/../assets/img/logo.png');
 
-$generalCssVersion = (string) @filemtime(__DIR__ . '/../assets/css/general.css');
-$dashboardCssVersion = (string) @filemtime(__DIR__ . '/../assets/css/dashboard.css');
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -117,8 +115,8 @@ $dashboardCssVersion = (string) @filemtime(__DIR__ . '/../assets/css/dashboard.c
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= htmlspecialchars($titulo) ?></title>
-    <link rel="stylesheet" href="../assets/css/general.css?v=<?= urlencode($generalCssVersion) ?>">
-    <link rel="stylesheet" href="../assets/css/dashboard.css?v=<?= urlencode($dashboardCssVersion) ?>">
+    <link rel="stylesheet" href="../assets/css/general.css?v=<?= urlencode((string) @filemtime(__DIR__ . '/../assets/css/general.css')) ?>">
+    <link rel="stylesheet" href="../assets/css/dashboard.css?v=<?= urlencode((string) @filemtime(__DIR__ . '/../assets/css/dashboard.css')) ?>">
 </head>
 <body class="dark-fixed">
 <div class="container">
