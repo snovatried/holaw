@@ -104,6 +104,9 @@ if ($rol === 'admin') {
 
     $proximos = $stmt->fetchAll();
 }
+
+$customLogoPath = '../assets/img/logo.png';
+$logoDisponible = file_exists(__DIR__ . '/../assets/img/logo.png');
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -114,16 +117,26 @@ if ($rol === 'admin') {
     <link rel="stylesheet" href="../assets/css/general.css">
     <link rel="stylesheet" href="../assets/css/dashboard.css">
 </head>
-<body>
+<body data-theme="dark">
 <div class="container">
-    <div class="logo-corner">DISPENSA<span>TECH</span></div>
-
     <div class="topbar card">
-        <div>
-            <p class="role-chip"><?= htmlspecialchars(strtoupper($rol)) ?></p>
-            <h1><?= htmlspecialchars($titulo) ?></h1>
+        <div class="topbar-main">
+            <div class="brand-slot" title="Espacio reservado para logo">
+                <?php if ($logoDisponible): ?>
+                    <img src="<?= htmlspecialchars($customLogoPath) ?>" alt="Logo del sistema" class="brand-logo">
+                <?php else: ?>
+                    <div class="brand-placeholder">Logo</div>
+                <?php endif; ?>
+            </div>
+            <div>
+                <p class="role-chip"><?= htmlspecialchars(strtoupper($rol)) ?></p>
+                <h1><?= htmlspecialchars($titulo) ?></h1>
+            </div>
         </div>
-        <a class="btn btn-secondary" href="../auth/logout.php">Cerrar sesión</a>
+        <div class="topbar-actions">
+            <button type="button" class="btn" id="theme-toggle">Modo claro</button>
+            <a class="btn btn-secondary" href="../auth/logout.php">Cerrar sesión</a>
+        </div>
     </div>
 
     <section class="card">
@@ -174,5 +187,25 @@ if ($rol === 'admin') {
         </section>
     <?php endif; ?>
 </div>
+<script>
+(() => {
+    const root = document.body;
+    const toggleBtn = document.getElementById('theme-toggle');
+    const savedTheme = localStorage.getItem('ui-theme');
+
+    const applyTheme = (theme) => {
+        root.setAttribute('data-theme', theme);
+        toggleBtn.textContent = theme === 'dark' ? 'Modo claro' : 'Modo oscuro';
+    };
+
+    applyTheme(savedTheme === 'light' ? 'light' : 'dark');
+
+    toggleBtn.addEventListener('click', () => {
+        const nextTheme = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+        localStorage.setItem('ui-theme', nextTheme);
+        applyTheme(nextTheme);
+    });
+})();
+</script>
 </body>
 </html>
