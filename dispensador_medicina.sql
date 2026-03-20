@@ -107,6 +107,7 @@ CREATE TABLE `programacion` (
   `hora_dispenso` time NOT NULL,
   `frecuencia` varchar(50) DEFAULT NULL,
   `cantidad` int(11) NOT NULL,
+  `id_compartimento` int(11) DEFAULT NULL,
   `estado` enum('activo','inactivo') DEFAULT 'activo'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -189,7 +190,8 @@ ALTER TABLE `medicamentos`
 ALTER TABLE `programacion`
   ADD PRIMARY KEY (`id_programacion`),
   ADD KEY `id_usuario` (`id_usuario`),
-  ADD KEY `id_medicamento` (`id_medicamento`);
+  ADD KEY `id_medicamento` (`id_medicamento`),
+  ADD KEY `id_compartimento` (`id_compartimento`);
 
 --
 -- Indices de la tabla `tipos_medicamento`
