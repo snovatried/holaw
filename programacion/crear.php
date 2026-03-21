@@ -21,6 +21,19 @@ if ($checkColumn->fetchColumn()) {
 $medicamentos = $pdo->query('SELECT id_medicamento, nombre, dosis FROM medicamentos ORDER BY nombre')->fetchAll();
 $pacientes = [];
 
+
+$hasCompartimentosTable = (bool) $pdo->query("SELECT to_regclass('public.compartimentos') IS NOT NULL")->fetchColumn();
+$compartimentos = [];
+if ($hasCompartimentosTable) {
+    $sqlCompartimentos = "
+        SELECT c.id_compartimento, c.id_medicamento, c.cantidad_actual, m.nombre AS medicamento
+        FROM compartimentos c
+        LEFT JOIN medicamentos m ON m.id_medicamento = c.id_medicamento
+        ORDER BY c.id_compartimento
+    ";
+    $compartimentos = $pdo->query($sqlCompartimentos)->fetchAll();
+}
+
 if ($hasIdPaciente) {
     if ($rol === 'admin') {
         $stmtPacientes = $pdo->query("SELECT id_usuario, nombre FROM usuarios WHERE rol = 'paciente' AND estado = 'activo' ORDER BY nombre");
@@ -48,8 +61,8 @@ if ($hasIdPaciente) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Programar dispensos</title>
-    <link rel="stylesheet" href="../assets/css/general.css">
-    <link rel="stylesheet" href="../assets/css/forms.css">
+    <link rel="stylesheet" href="../assets/css/general.css?v=<?= urlencode((string) @filemtime(__DIR__ . '/../assets/css/general.css')) ?>">
+    <link rel="stylesheet" href="../assets/css/forms.css?v=<?= urlencode((string) @filemtime(__DIR__ . '/../assets/css/forms.css')) ?>">
 </head>
 <body>
 <div class="container">
@@ -86,6 +99,22 @@ if ($hasIdPaciente) {
                 <?php endforeach; ?>
             </select>
 
+
+            <label for="id_compartimento">Compartimento de salida</label>
+            <?php if (count($compartimentos) > 0): ?>
+                <select id="id_compartimento" name="id_compartimento" required>
+                    <option value="">Selecciona un compartimento</option>
+                    <?php foreach ($compartimentos as $c): ?>
+                        <option value="<?= (int) $c['id_compartimento'] ?>" data-medicamento="<?= (int) ($c['id_medicamento'] ?? 0) ?>">
+                            <?= htmlspecialchars('Comp. ' . $c['id_compartimento'] . ' - ' . ($c['medicamento'] ?: 'Sin medicamento') . ' (stock: ' . ($c['cantidad_actual'] ?? 0) . ')') ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            <?php else: ?>
+                <input id="id_compartimento" type="number" name="id_compartimento" min="1" placeholder="Ejemplo: 1" required>
+                <small style="color: var(--muted);">No se encontró catálogo de compartimentos. Ingresa el número manualmente.</small>
+            <?php endif; ?>
+
             <label for="hora_dispenso">Hora de dispenso</label>
             <input id="hora_dispenso" type="time" name="hora_dispenso" required>
 
@@ -100,5 +129,32 @@ if ($hasIdPaciente) {
     </section>
 </div>
 <script src="../assets/js/validaciones.js"></script>
+
+<script>
+(() => {
+    const medicamento = document.getElementById('id_medicamento');
+    const compartimento = document.getElementById('id_compartimento');
+    if (!medicamento || !compartimento || compartimento.tagName !== 'SELECT') return;
+
+    const toggleCompartimentos = () => {
+        const medId = medicamento.value;
+        Array.from(compartimento.options).forEach((opt, idx) => {
+            if (idx === 0) {
+                opt.hidden = false;
+                return;
+            }
+            const medOpt = opt.getAttribute('data-medicamento');
+            opt.hidden = medId !== '' && medOpt !== '0' && medOpt !== medId;
+        });
+        if (compartimento.selectedOptions[0] && compartimento.selectedOptions[0].hidden) {
+            compartimento.value = '';
+        }
+    };
+
+    medicamento.addEventListener('change', toggleCompartimentos);
+    toggleCompartimentos();
+})();
+</script>
+
 </body>
 </html>

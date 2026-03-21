@@ -9,9 +9,9 @@ $googleReady = $googleClientId !== '';
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Iniciar sesión</title>
-    <link rel="stylesheet" href="assets/css/general.css">
-    <link rel="stylesheet" href="assets/css/forms.css">
-    <link rel="stylesheet" href="assets/css/login.css">
+    <link rel="stylesheet" href="assets/css/general.css?v=<?= urlencode((string) @filemtime(__DIR__ . '/assets/css/general.css')) ?>">
+    <link rel="stylesheet" href="assets/css/forms.css?v=<?= urlencode((string) @filemtime(__DIR__ . '/assets/css/forms.css')) ?>">
+    <link rel="stylesheet" href="assets/css/login.css?v=<?= urlencode((string) @filemtime(__DIR__ . '/assets/css/login.css')) ?>">
 </head>
 <body>
     <main class="login-wrap">
