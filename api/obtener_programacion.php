@@ -1,11 +1,18 @@
 <?php
-require "../config/conexion.php";
+require '../config/conexion.php';
 
-header("Content-Type: application/json");
+header('Content-Type: application/json');
+
+$checkColumn = $pdo->prepare('SELECT 1 FROM information_schema.columns WHERE table_schema = ? AND table_name = ? AND column_name = ? LIMIT 1');
+$checkColumn->execute(['public', 'programacion', 'id_compartimento']);
+$hasIdCompartimento = (bool) $checkColumn->fetchColumn();
+
+$compartimentoSelect = $hasIdCompartimento ? 'COALESCE(p.id_compartimento, 0) AS id_compartimento,' : '0 AS id_compartimento,';
 
 $sql = "
-SELECT 
+SELECT
     p.id_programacion,
+    {$compartimentoSelect}
     m.nombre,
     p.cantidad
 FROM programacion p
