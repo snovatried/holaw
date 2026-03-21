@@ -33,15 +33,20 @@ if ($rol === 'admin') {
         </p>
 
         <div class="alert alert-success">
-            Catálogo conectado: selecciona un medicamento de la API y se autocompletará el formulario.
+            Catálogo conectado: se muestran solo medicamentos comestibles (pastillas/cápsulas) y se autocompleta el formulario.
         </div>
+        <?php if (($_GET['error'] ?? '') === 'tipo_no_comestible'): ?>
+            <div class="alert alert-error">
+                Solo puedes guardar medicamentos comestibles para el dispensador (pastillas/cápsulas).
+            </div>
+        <?php endif; ?>
 
         <label for="medicamento_api">Medicamento</label>
         <select id="medicamento_api" style="margin-bottom: 12px;">
             <option value="">Cargando medicamentos...</option>
         </select>
 
-        <form action="guardar.php" method="POST">
+        <form action="guardar.php" method="POST" id="form_medicamento">
             <label for="nombre">Nombre</label>
             <input id="nombre" name="nombre" placeholder="Nombre" required>
 
@@ -67,6 +72,19 @@ const selectMedicamento = document.getElementById('medicamento_api');
 const nombreInput = document.getElementById('nombre');
 const tipoInput = document.getElementById('tipo');
 const dosisInput = document.getElementById('dosis');
+const formMedicamento = document.getElementById('form_medicamento');
+
+function esTipoComestible(tipo = '') {
+    const t = String(tipo).toLowerCase().trim();
+    if (!t) return false;
+
+    const permitidos = [
+        'tablet', 'capsule', 'caplet', 'pill', 'comprimido', 'cápsula',
+        'capsula', 'gragea', 'pastilla', 'chewable', 'lozenge', 'troche', 'oral'
+    ];
+
+    return permitidos.some((p) => t.includes(p));
+}
 
 async function cargarMedicamentos() {
     try {
@@ -99,6 +117,13 @@ selectMedicamento.addEventListener('change', (e) => {
     nombreInput.value = option.dataset.nombre;
     tipoInput.value = option.dataset.tipo;
     dosisInput.value = option.dataset.dosis;
+});
+
+formMedicamento.addEventListener('submit', (e) => {
+    if (!esTipoComestible(tipoInput.value)) {
+        e.preventDefault();
+        alert('Solo se permiten medicamentos comestibles (pastillas/cápsulas).');
+    }
 });
 
 cargarMedicamentos();

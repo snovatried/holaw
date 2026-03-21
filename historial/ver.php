@@ -7,11 +7,37 @@ if (!isset($_SESSION['id_usuario'])) {
     exit;
 }
 
+$rol = $_SESSION['rol'] ?? '';
+$idUsuario = (int) ($_SESSION['id_usuario'] ?? 0);
+$mensaje = '';
+$error = '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['accion'] ?? '') === 'limpiar_historial') {
+    try {
+        if ($rol === 'paciente') {
+            $sqlDelete = "
+                DELETE FROM historial_dispenso h
+                USING programacion p
+                WHERE h.id_programacion = p.id_programacion
+                  AND p.id_usuario = ?
+            ";
+            $stmtDelete = $pdo->prepare($sqlDelete);
+            $stmtDelete->execute([$idUsuario]);
+        } else {
+            $stmtDelete = $pdo->prepare('DELETE FROM historial_dispenso');
+            $stmtDelete->execute();
+        }
+        $mensaje = 'Historial limpiado correctamente.';
+    } catch (Throwable $e) {
+        $error = 'No se pudo limpiar el historial. Intenta nuevamente.';
+    }
+}
+
 $where = '';
 $params = [];
-if (($_SESSION['rol'] ?? '') === 'paciente') {
+if ($rol === 'paciente') {
     $where = 'WHERE p.id_usuario = ?';
-    $params[] = $_SESSION['id_usuario'];
+    $params[] = $idUsuario;
 }
 
 $sql = "
@@ -33,9 +59,9 @@ $stmt->execute($params);
 $historial = $stmt->fetchAll();
 
 $dashboard = '../dashboard/paciente.php';
-if (($_SESSION['rol'] ?? '') === 'admin') {
+if ($rol === 'admin') {
     $dashboard = '../dashboard/admin.php';
-} elseif (($_SESSION['rol'] ?? '') === 'cuidador') {
+} elseif ($rol === 'cuidador') {
     $dashboard = '../dashboard/cuidador.php';
 }
 ?>
@@ -51,8 +77,22 @@ if (($_SESSION['rol'] ?? '') === 'admin') {
 <div class="container">
     <div class="topbar">
         <h1>Historial de dispensos</h1>
-        <a class="btn btn-secondary" href="<?= htmlspecialchars($dashboard) ?>">Volver</a>
+        <div style="display:flex; gap:8px;">
+            <form method="POST" onsubmit="return confirm('¿Seguro que deseas limpiar el historial visible?');">
+                <input type="hidden" name="accion" value="limpiar_historial">
+                <button class="btn" type="submit">Limpiar historial</button>
+            </form>
+            <a class="btn btn-secondary" href="<?= htmlspecialchars($dashboard) ?>">Volver</a>
+        </div>
     </div>
+
+    <?php if ($mensaje): ?>
+        <div class="alert alert-success"><?= htmlspecialchars($mensaje) ?></div>
+    <?php endif; ?>
+
+    <?php if ($error): ?>
+        <div class="alert alert-error"><?= htmlspecialchars($error) ?></div>
+    <?php endif; ?>
 
     <table>
         <thead>

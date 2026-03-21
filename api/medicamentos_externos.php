@@ -6,6 +6,38 @@ $batchSize = 100;
 $maxBatches = 5;
 $maxMedicamentos = 300;
 
+function esFormaComestible(string $tipo): bool
+{
+    $tipoLower = mb_strtolower(trim($tipo), 'UTF-8');
+    if ($tipoLower === '') {
+        return false;
+    }
+
+    $formasPermitidas = [
+        'tablet',
+        'capsule',
+        'caplet',
+        'pill',
+        'comprimido',
+        'cápsula',
+        'capsula',
+        'gragea',
+        'pastilla',
+        'chewable',
+        'lozenge',
+        'troche',
+        'oral',
+    ];
+
+    foreach ($formasPermitidas as $forma) {
+        if (str_contains($tipoLower, $forma)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 $context = stream_context_create([
     'http' => [
         'timeout' => 8,
@@ -46,7 +78,28 @@ for ($batch = 0; $batch < $maxBatches; $batch++) {
         }
 
         $tipoLower = mb_strtolower($tipo, 'UTF-8');
-        if (str_contains($tipoLower, 'syrup') || str_contains($tipoLower, 'jarabe')) {
+        if (
+            str_contains($tipoLower, 'syrup')
+            || str_contains($tipoLower, 'jarabe')
+            || str_contains($tipoLower, 'spray')
+            || str_contains($tipoLower, 'aerosol')
+            || str_contains($tipoLower, 'inhal')
+            || str_contains($tipoLower, 'injection')
+            || str_contains($tipoLower, 'injectable')
+            || str_contains($tipoLower, 'cream')
+            || str_contains($tipoLower, 'ointment')
+            || str_contains($tipoLower, 'gel')
+            || str_contains($tipoLower, 'patch')
+            || str_contains($tipoLower, 'drops')
+            || str_contains($tipoLower, 'solution')
+            || str_contains($tipoLower, 'suppository')
+            || str_contains($tipoLower, 'shampoo')
+            || str_contains($tipoLower, 'lotion')
+        ) {
+            continue;
+        }
+
+        if (!esFormaComestible($tipo)) {
             continue;
         }
 
