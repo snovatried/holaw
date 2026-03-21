@@ -1,7 +1,5 @@
 <?php
-$googleClientId = getenv('GOOGLE_CLIENT_ID') ?: '';
 $showError = isset($_GET['error']);
-$googleReady = $googleClientId !== '';
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -32,46 +30,8 @@ $googleReady = $googleClientId !== '';
                 <button type="submit">Iniciar sesión</button>
             </form>
 
-            <div class="oauth-divider">o inicia con Google</div>
-
-            <?php if (!$googleReady): ?>
-                <div class="alert alert-error">Google no está configurado aún. Define <code>GOOGLE_CLIENT_ID</code> en Apache y reinicia XAMPP.</div>
-                <p class="help-text">Guía rápida: abre <code>README.md</code>, sección "Configurar Login con Google".</p>
-            <?php endif; ?>
-
-            <div
-                id="g_id_onload"
-                data-client_id="<?= htmlspecialchars($googleClientId, ENT_QUOTES, 'UTF-8') ?>"
-                data-callback="handleGoogleCredential"
-                data-auto_prompt="false"
-            ></div>
-            <div class="g_id_signin" data-type="standard" data-width="360"></div>
         </section>
     </main>
-
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
-    <script>
-        async function handleGoogleCredential(response) {
-            const payload = new URLSearchParams();
-            payload.append('credential', response.credential);
-
-            const result = await fetch('auth/google_login.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: payload.toString()
-            });
-
-            if (!result.ok) {
-                alert('No se pudo iniciar sesión con Google. Revisa GOOGLE_CLIENT_ID y la configuración del proyecto en Google Cloud.');
-                return;
-            }
-
-            const data = await result.json();
-            if (data.redirect) {
-                window.location.href = data.redirect;
-            }
-        }
-    </script>
     <script src="assets/js/validaciones.js"></script>
 </body>
 </html>
