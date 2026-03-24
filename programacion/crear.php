@@ -10,6 +10,8 @@ if (!isset($_SESSION['id_usuario']) || !in_array($_SESSION['rol'] ?? '', ['admin
 $rol = $_SESSION['rol'];
 $dashboard = $rol === 'admin' ? '../dashboard/admin.php' : '../dashboard/cuidador.php';
 $showSuccess = isset($_GET['ok']);
+$mensaje = '';
+$error = '';
 
 $hasIdPaciente = false;
 $checkColumn = $pdo->prepare('SELECT 1 FROM information_schema.columns WHERE table_schema = ? AND table_name = ? AND column_name = ? LIMIT 1');
@@ -54,6 +56,84 @@ if ($hasIdPaciente) {
         }
     }
 }
+
+$hasRelTable = (bool) $pdo->query("SELECT to_regclass('public.cuidadores_pacientes') IS NOT NULL")->fetchColumn();
+$isCuidadorConRel = $rol === 'cuidador' && $hasIdPaciente && $hasRelTable;
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['accion'] ?? '') === 'eliminar_programacion') {
+    $idProgramacion = (int) ($_POST['id_programacion'] ?? 0);
+
+    if ($idProgramacion <= 0) {
+        $error = 'Programación inválida.';
+    } else {
+        try {
+            if ($rol === 'admin') {
+                $stmt = $pdo->prepare("UPDATE programacion SET estado = 'inactivo' WHERE id_programacion = ?");
+                $stmt->execute([$idProgramacion]);
+            } elseif ($isCuidadorConRel) {
+                $sql = "
+                    UPDATE programacion p
+                    SET estado = 'inactivo'
+                    FROM cuidadores_pacientes cp
+                    WHERE p.id_programacion = ?
+                      AND p.id_paciente = cp.id_paciente
+                      AND cp.id_cuidador = ?
+                ";
+                $stmt = $pdo->prepare($sql);
+                $stmt->execute([$idProgramacion, (int) $_SESSION['id_usuario']]);
+            } else {
+                $sql = "
+                    UPDATE programacion
+                    SET estado = 'inactivo'
+                    WHERE id_programacion = ?
+                      AND id_usuario = ?
+                ";
+                $stmt = $pdo->prepare($sql);
+                $stmt->execute([$idProgramacion, (int) $_SESSION['id_usuario']]);
+            }
+
+            if ($stmt->rowCount() > 0) {
+                $mensaje = 'Dispenso programado eliminado correctamente.';
+            } else {
+                $error = 'No se encontró la programación o no tienes permisos para eliminarla.';
+            }
+        } catch (Throwable $e) {
+            $error = 'No se pudo eliminar la programación. Intenta nuevamente.';
+        }
+    }
+}
+
+$sqlProgramaciones = "
+    SELECT
+        p.id_programacion,
+        p.hora_dispenso,
+        p.frecuencia,
+        p.cantidad,
+        m.nombre AS medicamento,
+        " . ($hasIdPaciente ? "u.nombre AS paciente," : "") . "
+        p.id_compartimento
+    FROM programacion p
+    JOIN medicamentos m ON m.id_medicamento = p.id_medicamento
+    " . ($hasIdPaciente ? "LEFT JOIN usuarios u ON u.id_usuario = p.id_paciente" : "") . "
+";
+
+$whereProgramaciones = ["p.estado = 'activo'"];
+$paramsProgramaciones = [];
+if ($rol === 'cuidador') {
+    if ($isCuidadorConRel) {
+        $sqlProgramaciones .= ' JOIN cuidadores_pacientes cp ON cp.id_paciente = p.id_paciente ';
+        $whereProgramaciones[] = 'cp.id_cuidador = ?';
+        $paramsProgramaciones[] = (int) $_SESSION['id_usuario'];
+    } else {
+        $whereProgramaciones[] = 'p.id_usuario = ?';
+        $paramsProgramaciones[] = (int) $_SESSION['id_usuario'];
+    }
+}
+
+$sqlProgramaciones .= ' WHERE ' . implode(' AND ', $whereProgramaciones) . ' ORDER BY p.hora_dispenso ASC, p.id_programacion DESC';
+$stmtProgramaciones = $pdo->prepare($sqlProgramaciones);
+$stmtProgramaciones->execute($paramsProgramaciones);
+$programaciones = $stmtProgramaciones->fetchAll();
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -72,6 +152,14 @@ if ($hasIdPaciente) {
 
         <?php if ($showSuccess): ?>
             <div class="alert alert-success">Programación guardada correctamente.</div>
+        <?php endif; ?>
+
+        <?php if ($mensaje): ?>
+            <div class="alert alert-success"><?= htmlspecialchars($mensaje) ?></div>
+        <?php endif; ?>
+
+        <?php if ($error): ?>
+            <div class="alert alert-error"><?= htmlspecialchars($error) ?></div>
         <?php endif; ?>
 
         <?php if (!$hasIdPaciente): ?>
@@ -126,6 +214,45 @@ if ($hasIdPaciente) {
 
             <button type="submit">Programar</button>
         </form>
+
+        <hr style="margin: 24px 0; border-color: var(--border);">
+        <h2>Dispensos programados</h2>
+        <table>
+            <thead>
+                <tr>
+                    <?php if ($hasIdPaciente): ?><th>Paciente</th><?php endif; ?>
+                    <th>Hora</th>
+                    <th>Medicamento</th>
+                    <th>Compartimento</th>
+                    <th>Cantidad</th>
+                    <th>Frecuencia</th>
+                    <th>Acción</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if (count($programaciones) === 0): ?>
+                    <tr><td colspan="<?= $hasIdPaciente ? '7' : '6' ?>">No hay dispensos programados activos.</td></tr>
+                <?php else: ?>
+                    <?php foreach ($programaciones as $p): ?>
+                        <tr>
+                            <?php if ($hasIdPaciente): ?><td><?= htmlspecialchars((string) ($p['paciente'] ?: 'Sin paciente')) ?></td><?php endif; ?>
+                            <td><?= htmlspecialchars((string) $p['hora_dispenso']) ?></td>
+                            <td><?= htmlspecialchars((string) $p['medicamento']) ?></td>
+                            <td><?= htmlspecialchars((string) ($p['id_compartimento'] ?: 'Sin compartimento')) ?></td>
+                            <td><?= htmlspecialchars((string) $p['cantidad']) ?></td>
+                            <td><?= htmlspecialchars((string) ($p['frecuencia'] ?: 'No especificada')) ?></td>
+                            <td>
+                                <form method="POST" onsubmit="return confirm('¿Seguro que deseas borrar este dispenso programado?');" style="margin:0;">
+                                    <input type="hidden" name="accion" value="eliminar_programacion">
+                                    <input type="hidden" name="id_programacion" value="<?= (int) $p['id_programacion'] ?>">
+                                    <button type="submit" class="btn btn-danger">Borrar</button>
+                                </form>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </tbody>
+        </table>
     </section>
 </div>
 <script src="../assets/js/validaciones.js"></script>

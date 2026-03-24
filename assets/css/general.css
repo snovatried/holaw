@@ -106,6 +106,14 @@ a:hover {
     background: linear-gradient(120deg, #3f5068, #2b3647);
 }
 
+.btn-danger {
+    background: linear-gradient(120deg, #dc2626, #b91c1c);
+}
+
+.btn-danger:hover {
+    background: linear-gradient(120deg, #b91c1c, #991b1b);
+}
+
 table {
     width: 100%;
     border-collapse: collapse;
