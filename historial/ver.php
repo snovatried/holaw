@@ -33,6 +33,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['accion'] ?? '') === 'limpi
     }
 }
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['accion'] ?? '') === 'eliminar_dispenso') {
+    $idHistorial = (int) ($_POST['id_historial'] ?? 0);
+    if ($idHistorial <= 0) {
+        $error = 'Registro de dispenso inválido.';
+    } else {
+        try {
+            if ($rol === 'paciente') {
+                $sqlDelete = "
+                    DELETE FROM historial_dispenso h
+                    USING programacion p
+                    WHERE h.id_programacion = p.id_programacion
+                      AND p.id_usuario = ?
+                      AND h.id_historial = ?
+                ";
+                $stmtDelete = $pdo->prepare($sqlDelete);
+                $stmtDelete->execute([$idUsuario, $idHistorial]);
+            } else {
+                $stmtDelete = $pdo->prepare('DELETE FROM historial_dispenso WHERE id_historial = ?');
+                $stmtDelete->execute([$idHistorial]);
+            }
+
+            if ($stmtDelete->rowCount() > 0) {
+                $mensaje = 'Dispenso eliminado correctamente.';
+            } else {
+                $error = 'No se encontró el dispenso o no tienes permiso para eliminarlo.';
+            }
+        } catch (Throwable $e) {
+            $error = 'No se pudo eliminar el dispenso. Intenta nuevamente.';
+        }
+    }
+}
+
 $where = '';
 $params = [];
 if ($rol === 'paciente') {
@@ -42,6 +74,7 @@ if ($rol === 'paciente') {
 
 $sql = "
 SELECT
+    h.id_historial,
     h.fecha,
     h.hora,
     m.nombre AS medicamento,
@@ -102,11 +135,12 @@ if ($rol === 'admin') {
                 <th>Medicamento</th>
                 <th>Resultado</th>
                 <th>Observaciones</th>
+                <th>Acción</th>
             </tr>
         </thead>
         <tbody>
             <?php if (count($historial) === 0): ?>
-                <tr><td colspan="5">Sin registros todavía.</td></tr>
+                <tr><td colspan="6">Sin registros todavía.</td></tr>
             <?php else: ?>
                 <?php foreach ($historial as $h): ?>
                 <tr>
@@ -115,6 +149,13 @@ if ($rol === 'admin') {
                     <td><?= htmlspecialchars((string)$h['medicamento']) ?></td>
                     <td><?= htmlspecialchars((string)$h['resultado']) ?></td>
                     <td><?= htmlspecialchars((string)($h['observaciones'] ?? '')) ?></td>
+                    <td>
+                        <form method="POST" onsubmit="return confirm('¿Seguro que deseas borrar este dispenso?');" style="margin:0;">
+                            <input type="hidden" name="accion" value="eliminar_dispenso">
+                            <input type="hidden" name="id_historial" value="<?= (int) $h['id_historial'] ?>">
+                            <button class="btn btn-danger" type="submit">Borrar</button>
+                        </form>
+                    </td>
                 </tr>
                 <?php endforeach; ?>
             <?php endif; ?>
