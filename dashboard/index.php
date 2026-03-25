@@ -14,6 +14,10 @@ $acciones = [];
 $proximos = [];
 $mostrarPacientes = false;
 $modoLegacy = false;
+$checkColumn = $pdo->prepare('SELECT 1 FROM information_schema.columns WHERE table_schema = ? AND table_name = ? AND column_name = ? LIMIT 1');
+$checkColumn->execute(['public', 'programacion', 'duracion_dias']);
+$hasDuracionDias = (bool) $checkColumn->fetchColumn();
+$duracionSelect = $hasDuracionDias ? 'p.duracion_dias' : 'NULL::INTEGER AS duracion_dias';
 
 if ($rol === 'admin') {
     $titulo = 'Dashboard Administrador';
@@ -33,7 +37,6 @@ if ($rol === 'admin') {
         ['href' => '../historial/ver.php', 'titulo' => 'Ver historial', 'desc' => 'Consulta los registros de dispensos anteriores.'],
     ];
 
-    $checkColumn = $pdo->prepare('SELECT 1 FROM information_schema.columns WHERE table_schema = ? AND table_name = ? AND column_name = ? LIMIT 1');
     $checkColumn->execute(['public', 'programacion', 'id_paciente']);
     $hasIdPaciente = (bool) $checkColumn->fetchColumn();
 
@@ -43,7 +46,7 @@ if ($rol === 'admin') {
 
     if ($modoLegacy) {
         $sql = "
-            SELECT p.hora_dispenso, p.frecuencia, p.cantidad, m.nombre AS medicamento, m.dosis, 'Mi programación' AS paciente
+            SELECT p.hora_dispenso, {$duracionSelect}, p.cantidad, m.nombre AS medicamento, m.dosis, 'Mi programación' AS paciente
             FROM programacion p
             JOIN medicamentos m ON p.id_medicamento = m.id_medicamento
             WHERE p.id_usuario = ? AND p.estado = 'activo'
@@ -54,7 +57,7 @@ if ($rol === 'admin') {
         $stmt->execute([$idUsuario]);
     } else {
         $sql = "
-            SELECT p.hora_dispenso, p.frecuencia, p.cantidad, m.nombre AS medicamento, m.dosis, u.nombre AS paciente
+            SELECT p.hora_dispenso, {$duracionSelect}, p.cantidad, m.nombre AS medicamento, m.dosis, u.nombre AS paciente
             FROM programacion p
             JOIN medicamentos m ON p.id_medicamento = m.id_medicamento
             JOIN cuidadores_pacientes cp ON cp.id_paciente = p.id_paciente
@@ -74,13 +77,12 @@ if ($rol === 'admin') {
         ['href' => '../historial/ver.php', 'titulo' => 'Ver mis dispensos', 'desc' => 'Consulta tu historial personal de dispensos.'],
     ];
 
-    $checkColumn = $pdo->prepare('SELECT 1 FROM information_schema.columns WHERE table_schema = ? AND table_name = ? AND column_name = ? LIMIT 1');
     $checkColumn->execute(['public', 'programacion', 'id_paciente']);
     $hasIdPaciente = (bool) $checkColumn->fetchColumn();
 
     if ($hasIdPaciente) {
         $sql = "
-            SELECT p.hora_dispenso, p.frecuencia, p.cantidad, m.nombre AS medicamento, m.dosis
+            SELECT p.hora_dispenso, {$duracionSelect}, p.cantidad, m.nombre AS medicamento, m.dosis
             FROM programacion p
             JOIN medicamentos m ON p.id_medicamento = m.id_medicamento
             WHERE p.estado = 'activo' AND (p.id_paciente = ? OR p.id_usuario = ?)
@@ -91,7 +93,7 @@ if ($rol === 'admin') {
         $stmt->execute([$idUsuario, $idUsuario]);
     } else {
         $sql = "
-            SELECT p.hora_dispenso, p.frecuencia, p.cantidad, m.nombre AS medicamento, m.dosis
+            SELECT p.hora_dispenso, {$duracionSelect}, p.cantidad, m.nombre AS medicamento, m.dosis
             FROM programacion p
             JOIN medicamentos m ON p.id_medicamento = m.id_medicamento
             WHERE p.id_usuario = ? AND p.estado = 'activo'
@@ -168,7 +170,7 @@ $logoDisponible = file_exists(__DIR__ . '/../assets/img/logo.png');
                     <th>Medicamento</th>
                     <th>Dosis</th>
                     <th>Cantidad</th>
-                    <th>Frecuencia</th>
+                    <th>Duración (días)</th>
                 </tr>
                 </thead>
                 <tbody>
@@ -179,7 +181,7 @@ $logoDisponible = file_exists(__DIR__ . '/../assets/img/logo.png');
                         <td><?= htmlspecialchars((string) $p['medicamento']) ?></td>
                         <td><?= htmlspecialchars((string) ($p['dosis'] ?: 'No especificada')) ?></td>
                         <td><?= htmlspecialchars((string) $p['cantidad']) ?></td>
-                        <td><?= htmlspecialchars((string) ($p['frecuencia'] ?: 'No especificada')) ?></td>
+                        <td><?= htmlspecialchars((string) ($p['duracion_dias'] ?: 'No especificada')) ?></td>
                     </tr>
                 <?php endforeach; ?>
                 </tbody>
