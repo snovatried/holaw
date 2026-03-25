@@ -19,6 +19,8 @@ $checkColumn->execute(['public', 'programacion', 'id_paciente']);
 if ($checkColumn->fetchColumn()) {
     $hasIdPaciente = true;
 }
+$checkColumn->execute(['public', 'programacion', 'duracion_dias']);
+$hasDuracionDias = (bool) $checkColumn->fetchColumn();
 
 $medicamentos = $pdo->query('SELECT id_medicamento, nombre, dosis FROM medicamentos ORDER BY nombre')->fetchAll();
 $pacientes = [];
@@ -107,7 +109,7 @@ $sqlProgramaciones = "
     SELECT
         p.id_programacion,
         p.hora_dispenso,
-        p.frecuencia,
+        " . ($hasDuracionDias ? "p.duracion_dias," : "NULL::INTEGER AS duracion_dias,") . "
         p.cantidad,
         m.nombre AS medicamento,
         " . ($hasIdPaciente ? "u.nombre AS paciente," : "") . "
@@ -206,8 +208,8 @@ $programaciones = $stmtProgramaciones->fetchAll();
             <label for="hora_dispenso">Hora de dispenso</label>
             <input id="hora_dispenso" type="time" name="hora_dispenso" required>
 
-            <label for="frecuencia">Frecuencia</label>
-            <input id="frecuencia" type="text" name="frecuencia" placeholder="Ejemplo: cada 8 horas" required>
+            <label for="duracion_dias">Durante cuántos días</label>
+            <input id="duracion_dias" type="number" name="duracion_dias" min="1" placeholder="Ejemplo: 7" required>
 
             <label for="cantidad">Cantidad</label>
             <input id="cantidad" type="number" name="cantidad" min="1" required>
@@ -225,7 +227,7 @@ $programaciones = $stmtProgramaciones->fetchAll();
                     <th>Medicamento</th>
                     <th>Compartimento</th>
                     <th>Cantidad</th>
-                    <th>Frecuencia</th>
+                    <th>Duración (días)</th>
                     <th>Acción</th>
                 </tr>
             </thead>
@@ -240,7 +242,7 @@ $programaciones = $stmtProgramaciones->fetchAll();
                             <td><?= htmlspecialchars((string) $p['medicamento']) ?></td>
                             <td><?= htmlspecialchars((string) ($p['id_compartimento'] ?: 'Sin compartimento')) ?></td>
                             <td><?= htmlspecialchars((string) $p['cantidad']) ?></td>
-                            <td><?= htmlspecialchars((string) ($p['frecuencia'] ?: 'No especificada')) ?></td>
+                            <td><?= htmlspecialchars((string) ($p['duracion_dias'] ?: 'No especificada')) ?></td>
                             <td>
                                 <form method="POST" onsubmit="return confirm('¿Seguro que deseas borrar este dispenso programado?');" style="margin:0;">
                                     <input type="hidden" name="accion" value="eliminar_programacion">
