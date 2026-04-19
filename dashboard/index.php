@@ -26,6 +26,7 @@ if ($rol === 'admin') {
         ['href' => '../medicamentos/agregar.php', 'titulo' => 'Agregar medicamento', 'desc' => 'Registra nuevos medicamentos en el sistema.'],
         ['href' => '../programacion/crear.php', 'titulo' => 'Programar dispensos', 'desc' => 'Configura horarios y cantidades de dispenso.'],
         ['href' => '../asignaciones/gestionar.php', 'titulo' => 'Asignar pacientes', 'desc' => 'Vincula pacientes con cuidadores.'],
+        ['href' => '../usuarios/crear.php', 'titulo' => 'Crear usuarios', 'desc' => 'Permite al administrador registrar nuevos usuarios.'],
         ['href' => '../historial/ver.php', 'titulo' => 'Ver historial', 'desc' => 'Revisa dispensos realizados y eventos previos.'],
     ];
 } elseif ($rol === 'cuidador') {

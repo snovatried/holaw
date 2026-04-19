@@ -168,6 +168,25 @@ En la pantalla de agregar medicamentos:
 4. Completa `cantidad_total` y `fecha_vencimiento`.
 5. Guarda.
 
+### 7.4 Crear usuarios desde admin
+
+1. Inicia sesión con rol `admin`.
+2. En el dashboard entra a **Crear usuarios**.
+3. Completa nombre, usuario, contraseña, rol y estado.
+4. Opcional: agrega correo (por ejemplo Gmail) para notificaciones.
+
+### 7.5 Notificación por correo al dispensar
+
+- Cada vez que `api/registrar_dispenso.php` registra un evento, se intenta enviar un correo al paciente programado.
+- Si existe columna `usuarios.correo`, usa ese valor; en caso contrario usa el campo `usuarios.usuario` si tiene formato email.
+- Puedes definir remitente con variable de entorno:
+
+```
+MAIL_FROM=tu_cuenta@gmail.com
+```
+
+> Nota: `mail()` depende de la configuración SMTP del servidor PHP.
+
 ---
 
 ## 8) Rutas importantes
