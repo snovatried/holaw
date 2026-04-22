@@ -26,6 +26,8 @@ if ($rol === 'admin') {
         ['href' => '../medicamentos/agregar.php', 'titulo' => 'Agregar medicamento', 'desc' => 'Registra nuevos medicamentos en el sistema.'],
         ['href' => '../programacion/crear.php', 'titulo' => 'Programar dispensos', 'desc' => 'Configura horarios y cantidades de dispenso.'],
         ['href' => '../asignaciones/gestionar.php', 'titulo' => 'Asignar pacientes', 'desc' => 'Vincula pacientes con cuidadores.'],
+        ['href' => '../usuarios/crear.php', 'titulo' => 'Crear usuarios', 'desc' => 'Permite al administrador registrar nuevos usuarios.'],
+        ['href' => '../usuarios/configurar_correos.php', 'titulo' => 'Configurar correos', 'desc' => 'Ajusta correos de notificación y pruebas de envío.'],
         ['href' => '../historial/ver.php', 'titulo' => 'Ver historial', 'desc' => 'Revisa dispensos realizados y eventos previos.'],
     ];
 } elseif ($rol === 'cuidador') {
@@ -35,6 +37,7 @@ if ($rol === 'admin') {
         ['href' => '../medicamentos/agregar.php', 'titulo' => 'Agregar medicamento', 'desc' => 'Carga medicamentos nuevos cuando sea necesario.'],
         ['href' => '../programacion/crear.php', 'titulo' => 'Programar medicamentos', 'desc' => 'Define la rutina de dispenso de cada paciente.'],
         ['href' => '../historial/ver.php', 'titulo' => 'Ver historial', 'desc' => 'Consulta los registros de dispensos anteriores.'],
+        ['href' => '../usuarios/configurar_correos.php', 'titulo' => 'Configurar correos', 'desc' => 'Define correos de notificación para tus pacientes.'],
     ];
 
     $checkColumn->execute(['public', 'programacion', 'id_paciente']);
