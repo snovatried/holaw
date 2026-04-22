@@ -187,6 +187,19 @@ MAIL_FROM=tu_cuenta@gmail.com
 
 > Nota: `mail()` depende de la configuración SMTP del servidor PHP.
 
+### 7.6 Configuración de correos (admin y cuidador)
+
+- Ruta: `usuarios/configurar_correos.php`.
+- Disponible para `admin` y `cuidador`.
+- `admin`: puede editar todos los correos y aplicar correo de prueba global.
+- `cuidador`: puede editar su correo y el de pacientes asignados.
+
+Sentencia SQL de prueba:
+
+```sql
+UPDATE usuarios SET correo = 'aaronmachuca19@gmail.com';
+```
+
 ---
 
 ## 8) Rutas importantes
