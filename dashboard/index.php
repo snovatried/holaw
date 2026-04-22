@@ -9,18 +9,24 @@ if (!isset($_SESSION['rol'])) {
 
 $rol = $_SESSION['rol'];
 $idUsuario = (int) ($_SESSION['id_usuario'] ?? 0);
-$titulo = 'Dashboard';
+$titulo = 'Bienvenido';
 $acciones = [];
 $proximos = [];
 $mostrarPacientes = false;
 $modoLegacy = false;
+$mensajeInfo = '';
+
+$stmtUsuario = $pdo->prepare('SELECT nombre FROM usuarios WHERE id_usuario = ? LIMIT 1');
+$stmtUsuario->execute([$idUsuario]);
+$nombreUsuario = (string) ($stmtUsuario->fetchColumn() ?: 'Usuario');
 $checkColumn = $pdo->prepare('SELECT 1 FROM information_schema.columns WHERE table_schema = ? AND table_name = ? AND column_name = ? LIMIT 1');
 $checkColumn->execute(['public', 'programacion', 'duracion_dias']);
 $hasDuracionDias = (bool) $checkColumn->fetchColumn();
 $duracionSelect = $hasDuracionDias ? 'p.duracion_dias' : 'NULL::INTEGER AS duracion_dias';
 
 if ($rol === 'admin') {
-    $titulo = 'Dashboard Administrador';
+    $titulo = "Bienvenido {$nombreUsuario}";
+    $mensajeInfo = 'Desde aquí puedes administrar usuarios, asignaciones y programación de dispensos.';
     $acciones = [
         ['href' => '../medicamentos/listar.php', 'titulo' => 'Listar medicamentos', 'desc' => 'Consulta y revisa los medicamentos disponibles.'],
         ['href' => '../medicamentos/agregar.php', 'titulo' => 'Agregar medicamento', 'desc' => 'Registra nuevos medicamentos en el sistema.'],
@@ -31,7 +37,8 @@ if ($rol === 'admin') {
         ['href' => '../historial/ver.php', 'titulo' => 'Ver historial', 'desc' => 'Revisa dispensos realizados y eventos previos.'],
     ];
 } elseif ($rol === 'cuidador') {
-    $titulo = 'Dashboard Cuidador';
+    $titulo = "Bienvenido {$nombreUsuario}";
+    $mensajeInfo = 'Aquí puedes revisar pacientes, horarios y ajustar correos de notificación.';
     $acciones = [
         ['href' => '../medicamentos/listar.php', 'titulo' => 'Listar medicamentos', 'desc' => 'Explora los medicamentos disponibles para tus pacientes.'],
         ['href' => '../medicamentos/agregar.php', 'titulo' => 'Agregar medicamento', 'desc' => 'Carga medicamentos nuevos cuando sea necesario.'],
@@ -75,7 +82,8 @@ if ($rol === 'admin') {
 
     $proximos = $stmt->fetchAll();
 } else {
-    $titulo = 'Dashboard Paciente';
+    $titulo = "Bienvenido {$nombreUsuario}";
+    $mensajeInfo = 'Revisa tu historial y próximos medicamentos programados.';
     $acciones = [
         ['href' => '../historial/ver.php', 'titulo' => 'Ver mis dispensos', 'desc' => 'Consulta tu historial personal de dispensos.'],
     ];
@@ -145,6 +153,15 @@ $logoDisponible = file_exists(__DIR__ . '/../assets/img/logo.png');
     </div>
 
     <section class="card">
+        <h2>Información rápida</h2>
+        <p><?= htmlspecialchars($mensajeInfo) ?></p>
+        <p style="margin-top:8px;">
+            Tienes <strong><?= count($acciones) ?></strong> accesos rápidos disponibles
+            y <strong><?= count($proximos) ?></strong> medicamento(s) próximos en pantalla.
+        </p>
+    </section>
+
+    <section class="card" style="margin-top: 16px;">
         <h2>Accesos rápidos</h2>
         <ul class="nav-links">
             <?php foreach ($acciones as $accion): ?>

@@ -12,6 +12,26 @@ $idActual = (int) ($_SESSION['id_usuario'] ?? 0);
 $mensaje = '';
 $error = '';
 
+function enviarCorreoPrueba(string $destino, string $from = ''): bool
+{
+    if (!filter_var($destino, FILTER_VALIDATE_EMAIL)) {
+        return false;
+    }
+
+    $asunto = 'Prueba de notificación - Dispensador de Medicina';
+    $cuerpo = "Este es un correo de prueba para validar la configuración de notificaciones.\n\nSi recibiste este mensaje, la configuración de correo está funcionando.";
+    $headers = [
+        'MIME-Version: 1.0',
+        'Content-type: text/plain; charset=UTF-8',
+    ];
+
+    if ($from !== '' && filter_var($from, FILTER_VALIDATE_EMAIL)) {
+        $headers[] = 'From: ' . $from;
+    }
+
+    return (bool) @mail($destino, $asunto, $cuerpo, implode("\r\n", $headers));
+}
+
 function asegurarColumnaCorreo(PDO $pdo): bool
 {
     $check = $pdo->prepare("SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'usuarios' AND column_name = 'correo' LIMIT 1");
@@ -72,6 +92,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $hasCorreo) {
             $stmt = $pdo->prepare('UPDATE usuarios SET correo = ? WHERE id_usuario = ?');
             $stmt->execute([$correo !== '' ? $correo : null, $idUsuario]);
             $mensaje = 'Correo actualizado correctamente.';
+        }
+    }
+
+    if ($accion === 'enviar_prueba') {
+        $idUsuario = (int) ($_POST['id_usuario'] ?? 0);
+        $correo = trim((string) ($_POST['correo'] ?? ''));
+
+        if (!in_array($idUsuario, $idsPermitidos, true)) {
+            $error = 'No tienes permisos para enviar pruebas a ese usuario.';
+        } elseif ($correo === '' || !filter_var($correo, FILTER_VALIDATE_EMAIL)) {
+            $error = 'Debes ingresar un correo válido antes de enviar la prueba.';
+        } else {
+            $from = trim((string) getenv('MAIL_FROM'));
+            $ok = enviarCorreoPrueba($correo, $from);
+            if ($ok) {
+                $mensaje = "Correo de prueba enviado a {$correo}.";
+            } else {
+                $error = "No se pudo enviar el correo de prueba a {$correo}. Revisa la configuración SMTP de PHP.";
+            }
         }
     }
 
@@ -147,12 +186,12 @@ if (!empty($idsPermitidos) && $hasCorreo) {
                         <td><?= htmlspecialchars((string) $u['estado']) ?></td>
                         <td>
                             <form method="POST" style="display:flex;gap:8px;align-items:center;min-width:260px;">
-                                <input type="hidden" name="accion" value="guardar_correo">
                                 <input type="hidden" name="id_usuario" value="<?= (int) $u['id_usuario'] ?>">
                                 <input type="email" name="correo" value="<?= htmlspecialchars((string) ($u['correo'] ?? '')) ?>" placeholder="correo@gmail.com" style="margin:0;">
                         </td>
                         <td>
-                                <button type="submit">Guardar</button>
+                                <button type="submit" name="accion" value="guardar_correo">Guardar</button>
+                                <button type="submit" name="accion" value="enviar_prueba">Enviar prueba</button>
                             </form>
                         </td>
                     </tr>

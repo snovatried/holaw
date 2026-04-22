@@ -193,6 +193,7 @@ MAIL_FROM=tu_cuenta@gmail.com
 - Disponible para `admin` y `cuidador`.
 - `admin`: puede editar todos los correos y aplicar correo de prueba global.
 - `cuidador`: puede editar su correo y el de pacientes asignados.
+- Incluye botón **Enviar prueba** por usuario para validar envío real de correo.
 
 Sentencia SQL de prueba:
 
