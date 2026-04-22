@@ -168,6 +168,39 @@ En la pantalla de agregar medicamentos:
 4. Completa `cantidad_total` y `fecha_vencimiento`.
 5. Guarda.
 
+### 7.4 Crear usuarios desde admin
+
+1. Inicia sesión con rol `admin`.
+2. En el dashboard entra a **Crear usuarios**.
+3. Completa nombre, usuario, contraseña, rol y estado.
+4. Opcional: agrega correo (por ejemplo Gmail) para notificaciones.
+
+### 7.5 Notificación por correo al dispensar
+
+- Cada vez que `api/registrar_dispenso.php` registra un evento, se intenta enviar un correo al paciente programado.
+- Si existe columna `usuarios.correo`, usa ese valor; en caso contrario usa el campo `usuarios.usuario` si tiene formato email.
+- Puedes definir remitente con variable de entorno:
+
+```
+MAIL_FROM=tu_cuenta@gmail.com
+```
+
+> Nota: `mail()` depende de la configuración SMTP del servidor PHP.
+
+### 7.6 Configuración de correos (admin y cuidador)
+
+- Ruta: `usuarios/configurar_correos.php`.
+- Disponible para `admin` y `cuidador`.
+- `admin`: puede editar todos los correos y aplicar correo de prueba global.
+- `cuidador`: puede editar su correo y el de pacientes asignados.
+- Incluye botón **Enviar prueba** por usuario para validar envío real de correo.
+
+Sentencia SQL de prueba:
+
+```sql
+UPDATE usuarios SET correo = 'aaronmachuca19@gmail.com';
+```
+
 ---
 
 ## 8) Rutas importantes
@@ -199,6 +232,12 @@ En la pantalla de agregar medicamentos:
 - Confirma que `GOOGLE_CLIENT_ID` sea correcto.
 - Verifica que el dominio/origen `http://localhost` esté autorizado en Google Cloud.
 - Revisa consola del navegador para errores de OAuth.
+
+### Mensaje: "No se pudo enviar el correo de prueba..."
+
+- Esa alerta normalmente significa que PHP no tiene transporte de correo configurado (`SMTP` o `sendmail_path`).
+- En `usuarios/configurar_correos.php` ahora se muestra un diagnóstico rápido con esos valores.
+- Define `MAIL_FROM` con una cuenta válida y configura SMTP/sendmail en `php.ini` del entorno donde corre Apache/PHP.
 
 ---
 
