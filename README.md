@@ -194,6 +194,7 @@ MAIL_FROM=tu_cuenta@gmail.com
 - `admin`: puede editar todos los correos y aplicar correo de prueba global.
 - `cuidador`: puede editar su correo y el de pacientes asignados.
 - Incluye botón **Enviar prueba** por usuario para validar envío real de correo.
+- `admin` puede cargar varios remitentes de salida y activar uno (ya no depende solo de una variable fija de entorno).
 
 Sentencia SQL de prueba:
 
@@ -250,3 +251,20 @@ Este proyecto está orientado a entorno de desarrollo/local. Antes de producció
 - Configuración segura de sesiones y cookies
 - Revisar políticas CORS/CSRF
 - Usar HTTPS
+
+---
+
+## 11) SMTP en Docker (Render/no-localhost)
+
+El Dockerfile ya instala `msmtp` y configura:
+
+- `sendmail_path = "/usr/bin/msmtp -t -i"`
+- script `docker/entrypoint.sh` que genera `/etc/msmtprc` desde variables de entorno.
+
+Variables requeridas:
+
+- `SMTP_HOST` (ejemplo `smtp.gmail.com`)
+- `SMTP_PORT` (ejemplo `587`)
+- `SMTP_FROM` (o `MAIL_FROM`)
+- `SMTP_USER`
+- `SMTP_PASS` (App Password si usas Gmail)

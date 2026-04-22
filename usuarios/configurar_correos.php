@@ -1,6 +1,7 @@
 <?php
 session_start();
 require '../config/conexion.php';
+require '../config/notificaciones.php';
 
 if (!isset($_SESSION['rol']) || !in_array($_SESSION['rol'], ['admin', 'cuidador'], true)) {
     header('Location: ../index.php');
@@ -51,6 +52,25 @@ function diagnosticoMail(): array
     ];
 }
 
+function asegurarTablaRemitentes(PDO $pdo): bool
+{
+    try {
+        $pdo->exec(
+            'CREATE TABLE IF NOT EXISTS configuracion_correos_salida (
+                id_config SERIAL PRIMARY KEY,
+                nombre_remitente VARCHAR(120) NULL,
+                correo_remitente VARCHAR(190) NOT NULL UNIQUE,
+                activo BOOLEAN NOT NULL DEFAULT FALSE,
+                fecha_creacion TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )'
+        );
+        return true;
+    } catch (Throwable $e) {
+        error_log('No se pudo crear tabla configuracion_correos_salida: ' . $e->getMessage());
+        return false;
+    }
+}
+
 function asegurarColumnaCorreo(PDO $pdo): bool
 {
     $check = $pdo->prepare("SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'usuarios' AND column_name = 'correo' LIMIT 1");
@@ -69,6 +89,7 @@ function asegurarColumnaCorreo(PDO $pdo): bool
 }
 
 $hasCorreo = asegurarColumnaCorreo($pdo);
+$hasTablaRemitentes = asegurarTablaRemitentes($pdo);
 if (!$hasCorreo) {
     $error = 'No se pudo habilitar la columna correo en usuarios. Contacta al administrador técnico.';
 }
@@ -123,7 +144,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $hasCorreo) {
         } elseif ($correo === '' || !filter_var($correo, FILTER_VALIDATE_EMAIL)) {
             $error = 'Debes ingresar un correo válido antes de enviar la prueba.';
         } else {
-            $from = trim((string) getenv('MAIL_FROM'));
+            $fromCfg = obtenerRemitenteNotificacion($pdo);
+            $from = trim((string) ($fromCfg['correo'] ?? ''));
             $ok = enviarCorreoPrueba($correo, $from);
             if ($ok) {
                 $mensaje = "Correo de prueba enviado a {$correo}.";
@@ -144,6 +166,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $hasCorreo) {
         $stmt->execute([$correoTest]);
         $mensaje = 'Se actualizó el correo de todos los usuarios con el valor de prueba.';
     }
+
+    if ($accion === 'agregar_remitente' && $rol === 'admin' && $hasTablaRemitentes) {
+        $nombreRem = trim((string) ($_POST['nombre_remitente'] ?? ''));
+        $correoRem = trim((string) ($_POST['correo_remitente'] ?? ''));
+        if ($correoRem === '' || !filter_var($correoRem, FILTER_VALIDATE_EMAIL)) {
+            $error = 'Debes ingresar un correo remitente válido.';
+        } else {
+            $stmt = $pdo->prepare('INSERT INTO configuracion_correos_salida (nombre_remitente, correo_remitente, activo) VALUES (?, ?, FALSE) ON CONFLICT (correo_remitente) DO NOTHING');
+            $stmt->execute([$nombreRem !== '' ? $nombreRem : null, $correoRem]);
+            $mensaje = 'Remitente guardado. Ahora puedes activarlo.';
+        }
+    }
+
+    if ($accion === 'activar_remitente' && $rol === 'admin' && $hasTablaRemitentes) {
+        $idConfig = (int) ($_POST['id_config'] ?? 0);
+        if ($idConfig > 0) {
+            $pdo->beginTransaction();
+            $pdo->exec('UPDATE configuracion_correos_salida SET activo = FALSE');
+            $stmt = $pdo->prepare('UPDATE configuracion_correos_salida SET activo = TRUE WHERE id_config = ?');
+            $stmt->execute([$idConfig]);
+            $pdo->commit();
+            $mensaje = 'Remitente activo actualizado correctamente.';
+        }
+    }
 }
 
 $usuarios = [];
@@ -154,6 +200,14 @@ if (!empty($idsPermitidos) && $hasCorreo) {
     $stmt->execute($idsPermitidos);
     $usuarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
+
+$remitentes = [];
+if ($hasTablaRemitentes && $rol === 'admin') {
+    $stmt = $pdo->query('SELECT id_config, nombre_remitente, correo_remitente, activo FROM configuracion_correos_salida ORDER BY id_config ASC');
+    $remitentes = $stmt ? $stmt->fetchAll(PDO::FETCH_ASSOC) : [];
+}
+
+$remitenteActual = obtenerRemitenteNotificacion($pdo);
 
 ?>
 <!DOCTYPE html>
@@ -173,6 +227,9 @@ if (!empty($idsPermitidos) && $hasCorreo) {
         <p style="margin-top:8px;font-size:0.9rem;opacity:.85;">
             Diagnóstico actual de PHP mail: <code><?= htmlspecialchars(diagnosticoMail()['resumen']) ?></code>
         </p>
+        <p style="margin-top:8px;font-size:0.9rem;opacity:.85;">
+            Remitente activo: <code><?= htmlspecialchars((string) ($remitenteActual['correo'] ?: 'sin definir')) ?></code>
+        </p>
 
         <?php if ($mensaje !== ''): ?>
             <div class="alert alert-success"><?= htmlspecialchars($mensaje) ?></div>
@@ -191,6 +248,58 @@ if (!empty($idsPermitidos) && $hasCorreo) {
         <?php endif; ?>
 
         <p style="margin-top: 8px;"><strong>Sentencia SQL para test:</strong><br><code>UPDATE usuarios SET correo = 'aaronmachuca19@gmail.com';</code></p>
+
+        <?php if ($rol === 'admin' && $hasTablaRemitentes): ?>
+            <section class="card" style="margin-top:16px;">
+                <h2>Remitentes de salida (SMTP/mail)</h2>
+                <p>Configura varios correos remitentes y activa uno para los envíos.</p>
+                <form method="POST" style="display:flex;gap:8px;flex-wrap:wrap;align-items:end;">
+                    <input type="hidden" name="accion" value="agregar_remitente">
+                    <div>
+                        <label for="nombre_remitente">Nombre remitente</label>
+                        <input id="nombre_remitente" type="text" name="nombre_remitente" placeholder="Dispensador">
+                    </div>
+                    <div>
+                        <label for="correo_remitente">Correo remitente</label>
+                        <input id="correo_remitente" type="email" name="correo_remitente" placeholder="notificaciones@gmail.com" required>
+                    </div>
+                    <button type="submit">Guardar remitente</button>
+                </form>
+
+                <?php if (!empty($remitentes)): ?>
+                    <table style="margin-top:12px;">
+                        <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Correo</th>
+                            <th>Estado</th>
+                            <th>Acción</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <?php foreach ($remitentes as $r): ?>
+                            <tr>
+                                <td><?= htmlspecialchars((string) ($r['nombre_remitente'] ?: 'Sin nombre')) ?></td>
+                                <td><?= htmlspecialchars((string) $r['correo_remitente']) ?></td>
+                                <td><?= !empty($r['activo']) ? 'Activo' : 'Inactivo' ?></td>
+                                <td>
+                                    <?php if (empty($r['activo'])): ?>
+                                        <form method="POST">
+                                            <input type="hidden" name="accion" value="activar_remitente">
+                                            <input type="hidden" name="id_config" value="<?= (int) $r['id_config'] ?>">
+                                            <button type="submit">Activar</button>
+                                        </form>
+                                    <?php else: ?>
+                                        <span>En uso</span>
+                                    <?php endif; ?>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                <?php endif; ?>
+            </section>
+        <?php endif; ?>
 
         <?php if ($hasCorreo && !empty($usuarios)): ?>
             <table>

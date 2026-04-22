@@ -1,5 +1,37 @@
 <?php
 
+function obtenerRemitenteNotificacion(PDO $pdo): array
+{
+    $correo = trim((string) getenv('MAIL_FROM'));
+    $nombre = trim((string) getenv('MAIL_FROM_NAME'));
+
+    try {
+        $pdo->exec(
+            'CREATE TABLE IF NOT EXISTS configuracion_correos_salida (
+                id_config SERIAL PRIMARY KEY,
+                nombre_remitente VARCHAR(120) NULL,
+                correo_remitente VARCHAR(190) NOT NULL UNIQUE,
+                activo BOOLEAN NOT NULL DEFAULT FALSE,
+                fecha_creacion TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )'
+        );
+
+        $stmt = $pdo->query("SELECT nombre_remitente, correo_remitente FROM configuracion_correos_salida WHERE activo = TRUE ORDER BY id_config ASC LIMIT 1");
+        $cfg = $stmt ? $stmt->fetch(PDO::FETCH_ASSOC) : false;
+        if ($cfg && !empty($cfg['correo_remitente']) && filter_var($cfg['correo_remitente'], FILTER_VALIDATE_EMAIL)) {
+            $correo = (string) $cfg['correo_remitente'];
+            $nombre = trim((string) ($cfg['nombre_remitente'] ?? ''));
+        }
+    } catch (Throwable $e) {
+        error_log('No se pudo leer configuracion_correos_salida: ' . $e->getMessage());
+    }
+
+    return [
+        'correo' => $correo,
+        'nombre' => $nombre,
+    ];
+}
+
 function enviarCorreoDispenso(PDO $pdo, int $idProgramacion, string $resultado, ?string $observaciones): void
 {
     $checkPaciente = $pdo->prepare(
@@ -65,9 +97,13 @@ function enviarCorreoDispenso(PDO $pdo, int $idProgramacion, string $resultado, 
         'Content-type: text/plain; charset=UTF-8',
     ];
 
-    $from = trim((string) getenv('MAIL_FROM'));
+    $remitente = obtenerRemitenteNotificacion($pdo);
+    $from = trim((string) ($remitente['correo'] ?? ''));
+    $fromName = trim((string) ($remitente['nombre'] ?? ''));
     if ($from !== '' && filter_var($from, FILTER_VALIDATE_EMAIL)) {
-        $headers[] = 'From: ' . $from;
+        $headers[] = $fromName !== ''
+            ? 'From: ' . str_replace(["\r", "\n"], '', $fromName) . ' <' . $from . '>'
+            : 'From: ' . $from;
     }
 
     $enviado = @mail($correo, $asunto, $mensaje, implode("\r\n", $headers));
