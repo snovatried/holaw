@@ -32,6 +32,25 @@ function enviarCorreoPrueba(string $destino, string $from = ''): bool
     return (bool) @mail($destino, $asunto, $cuerpo, implode("\r\n", $headers));
 }
 
+function diagnosticoMail(): array
+{
+    $smtp = trim((string) ini_get('SMTP'));
+    $smtpPort = trim((string) ini_get('smtp_port'));
+    $sendmailPath = trim((string) ini_get('sendmail_path'));
+
+    $resumen = [];
+    $resumen[] = $smtp !== '' ? "SMTP={$smtp}" : 'SMTP=no configurado';
+    $resumen[] = $smtpPort !== '' ? "smtp_port={$smtpPort}" : 'smtp_port=no configurado';
+    $resumen[] = $sendmailPath !== '' ? "sendmail_path={$sendmailPath}" : 'sendmail_path=no configurado';
+
+    $faltaTransporte = ($smtp === '' && $sendmailPath === '');
+
+    return [
+        'falta_transporte' => $faltaTransporte,
+        'resumen' => implode(' | ', $resumen),
+    ];
+}
+
 function asegurarColumnaCorreo(PDO $pdo): bool
 {
     $check = $pdo->prepare("SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'usuarios' AND column_name = 'correo' LIMIT 1");
@@ -109,7 +128,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $hasCorreo) {
             if ($ok) {
                 $mensaje = "Correo de prueba enviado a {$correo}.";
             } else {
-                $error = "No se pudo enviar el correo de prueba a {$correo}. Revisa la configuración SMTP de PHP.";
+                $diag = diagnosticoMail();
+                if ($diag['falta_transporte']) {
+                    $error = "No se pudo enviar el correo de prueba a {$correo}. No hay transporte de correo configurado en PHP ({$diag['resumen']}).";
+                } else {
+                    $error = "No se pudo enviar el correo de prueba a {$correo}. Revisa credenciales/servidor SMTP ({$diag['resumen']}).";
+                }
             }
         }
     }
@@ -146,6 +170,9 @@ if (!empty($idsPermitidos) && $hasCorreo) {
     <section class="card">
         <h1>Configurar correos de notificación</h1>
         <p>Puedes guardar aquí los correos que recibirán avisos de dispenso.</p>
+        <p style="margin-top:8px;font-size:0.9rem;opacity:.85;">
+            Diagnóstico actual de PHP mail: <code><?= htmlspecialchars(diagnosticoMail()['resumen']) ?></code>
+        </p>
 
         <?php if ($mensaje !== ''): ?>
             <div class="alert alert-success"><?= htmlspecialchars($mensaje) ?></div>

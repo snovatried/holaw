@@ -233,6 +233,12 @@ UPDATE usuarios SET correo = 'aaronmachuca19@gmail.com';
 - Verifica que el dominio/origen `http://localhost` esté autorizado en Google Cloud.
 - Revisa consola del navegador para errores de OAuth.
 
+### Mensaje: "No se pudo enviar el correo de prueba..."
+
+- Esa alerta normalmente significa que PHP no tiene transporte de correo configurado (`SMTP` o `sendmail_path`).
+- En `usuarios/configurar_correos.php` ahora se muestra un diagnóstico rápido con esos valores.
+- Define `MAIL_FROM` con una cuenta válida y configura SMTP/sendmail en `php.ini` del entorno donde corre Apache/PHP.
+
 ---
 
 ## 10) Nota de seguridad (entorno local)
