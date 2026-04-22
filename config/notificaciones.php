@@ -2,6 +2,12 @@
 
 function enviarCorreoDispenso(PDO $pdo, int $idProgramacion, string $resultado, ?string $observaciones): void
 {
+    $checkPaciente = $pdo->prepare(
+        "SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'programacion' AND column_name = 'id_paciente' LIMIT 1"
+    );
+    $checkPaciente->execute();
+    $hasIdPaciente = (bool) $checkPaciente->fetchColumn();
+
     $checkCorreo = $pdo->prepare(
         "SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'usuarios' AND column_name = 'correo' LIMIT 1"
     );
@@ -11,6 +17,7 @@ function enviarCorreoDispenso(PDO $pdo, int $idProgramacion, string $resultado, 
     $correoExpr = $hasCorreo
         ? "COALESCE(NULLIF(TRIM(u.correo), ''), NULLIF(TRIM(u.usuario), ''))"
         : "NULLIF(TRIM(u.usuario), '')";
+    $usuarioObjetivoExpr = $hasIdPaciente ? 'COALESCE(p.id_paciente, p.id_usuario)' : 'p.id_usuario';
 
     $sql = "
         SELECT DISTINCT {$correoExpr} AS correo,
@@ -19,7 +26,7 @@ function enviarCorreoDispenso(PDO $pdo, int $idProgramacion, string $resultado, 
                p.hora_dispenso,
                p.cantidad
         FROM programacion p
-        JOIN usuarios u ON u.id_usuario = p.id_usuario
+        JOIN usuarios u ON u.id_usuario = {$usuarioObjetivoExpr}
         JOIN medicamentos m ON m.id_medicamento = p.id_medicamento
         WHERE p.id_programacion = ?
     ";
