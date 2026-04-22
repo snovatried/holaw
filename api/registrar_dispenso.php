@@ -1,5 +1,6 @@
 <?php
 require "../config/conexion.php";
+require "../config/notificaciones.php";
 
 header("Content-Type: application/json");
 
@@ -28,6 +29,8 @@ try {
         $resultado,
         $obs
     ]);
+
+    enviarCorreoDispenso($pdo, (int) $id_programacion, (string) $resultado, $obs);
 
     echo json_encode([
         "estado" => "ok",
