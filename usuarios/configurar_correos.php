@@ -42,6 +42,7 @@ function diagnosticoMail(): array
     $smtpPortEnv = trim((string) getenv('SMTP_PORT'));
     $smtpFromEnv = trim((string) (getenv('SMTP_FROM') ?: getenv('MAIL_FROM')));
     $smtpUserEnv = trim((string) getenv('SMTP_USER'));
+    $smtpPassEnv = trim((string) getenv('SMTP_PASS'));
 
     $resumen = [];
     $resumen[] = $smtp !== '' ? "SMTP={$smtp}" : 'SMTP=no configurado';
@@ -51,6 +52,7 @@ function diagnosticoMail(): array
     $resumen[] = $smtpPortEnv !== '' ? "SMTP_PORT={$smtpPortEnv}" : 'SMTP_PORT=no configurado';
     $resumen[] = $smtpFromEnv !== '' ? "SMTP_FROM/MAIL_FROM={$smtpFromEnv}" : 'SMTP_FROM/MAIL_FROM=no configurado';
     $resumen[] = $smtpUserEnv !== '' ? 'SMTP_USER=configurado' : 'SMTP_USER=no configurado';
+    $resumen[] = $smtpPassEnv !== '' ? 'SMTP_PASS=configurado' : 'SMTP_PASS=no configurado';
 
     $alertas = [];
     if ($sendmailPath !== '' && stripos($sendmailPath, 'msmtp') !== false) {
@@ -68,6 +70,9 @@ function diagnosticoMail(): array
     if ($smtpHostEnv !== '' && $smtpHostEnv !== 'localhost' && $smtpHostEnv !== '127.0.0.1' && $smtpUserEnv === '') {
         $alertas[] = 'SMTP_USER no está configurado. En Render/proveedores externos normalmente se requiere autenticación.';
     }
+    if ($smtpHostEnv === 'smtp.gmail.com' && $smtpUserEnv !== '' && $smtpPassEnv === '') {
+        $alertas[] = 'Gmail requiere SMTP_PASS (normalmente App Password de 16 caracteres, no la contraseña normal).';
+    }
 
     $faltaTransporte = ($smtp === '' && $sendmailPath === '');
     $msmtpConfigOk = is_readable('/etc/msmtprc');
@@ -81,6 +86,33 @@ function diagnosticoMail(): array
         'alertas' => $alertas,
         'resumen' => implode(' | ', $resumen),
     ];
+}
+
+function obtenerDetalleMsmtp(): string
+{
+    $rutaLog = '/tmp/msmtp.log';
+    if (!is_readable($rutaLog)) {
+        return '';
+    }
+
+    $contenido = @file_get_contents($rutaLog);
+    if ($contenido === false || trim($contenido) === '') {
+        return '';
+    }
+
+    $lineas = preg_split('/\r\n|\r|\n/', trim($contenido));
+    if (!is_array($lineas) || empty($lineas)) {
+        return '';
+    }
+
+    $ultimas = array_slice($lineas, -8);
+    $texto = trim(implode(' | ', array_filter(array_map('trim', $ultimas), static fn ($v) => $v !== '')));
+
+    if ($texto === '') {
+        return '';
+    }
+
+    return mb_substr($texto, 0, 700);
 }
 
 function asegurarTablaRemitentes(PDO $pdo): bool
@@ -188,6 +220,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $hasCorreo) {
                     $detalle = '';
                     if (!empty($diag['alertas'])) {
                         $detalle = ' Alertas: ' . implode(' ', $diag['alertas']);
+                    }
+                    if ($rol === 'admin') {
+                        $detalleMsmtp = obtenerDetalleMsmtp();
+                        if ($detalleMsmtp !== '') {
+                            $detalle .= " Último log msmtp: {$detalleMsmtp}";
+                        }
                     }
                     $error = "No se pudo enviar el correo de prueba a {$correo}. Revisa credenciales/servidor SMTP ({$diag['resumen']}).{$detalle}";
                 }
