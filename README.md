@@ -175,6 +175,7 @@ Dockerfile           Imagen base para Render
 - Consulta el diagnóstico en `usuarios/configurar_correos.php`.
 - En Docker, `msmtp` ahora solo requiere `SMTP_HOST` y `SMTP_FROM`/`MAIL_FROM`; `SMTP_USER` y `SMTP_PASS` son opcionales si tu relay local no usa autenticación (ejemplo `localhost:25`).
 - En Render **no suele ser lo mismo que `localhost:25`**: normalmente debes usar un host SMTP externo (SendGrid, Mailgun, etc.) y configurar `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`/`MAIL_FROM`.
+- Si usas Gmail (`smtp.gmail.com`), usa una **App Password** en `SMTP_PASS` (no la contraseña normal de la cuenta).
 
 ---
 
