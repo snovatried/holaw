@@ -1,270 +1,211 @@
-# Dispensador de Medicina (PHP + MySQL)
+# Dispensador de Medicina
 
-Aplicación web para gestionar usuarios, medicamentos y programación de dispensos.
+Aplicación web en **PHP** para administrar usuarios, medicamentos y programación de dispensos en un dispensador automático.
 
-Este README explica **desde cero** cómo levantar el proyecto con **XAMPP** en Windows y cómo usar las funciones principales, incluyendo login normal, login con Google y carga de medicamentos desde API externa (sin jarabes).
-
----
-
-## 1) Requisitos
-
-- XAMPP (Apache + MySQL + PHP)
-- Navegador web
-- Conexión a internet (para Google Login y API de medicamentos externos)
-
-> Recomendado: PHP 8.0+ y MySQL/MariaDB incluidos en XAMPP.
+> Proyecto preparado para desplegarse en **Render** con **PostgreSQL**.
 
 ---
 
-## 2) Instalar el proyecto en XAMPP
+## Tabla de contenido
 
-1. Copia esta carpeta del proyecto dentro de:
-   - `C:\xampp\htdocs\holaw`
-2. Abre **XAMPP Control Panel**.
-3. Inicia:
-   - **Apache**
-   - **MySQL**
-
----
-
-## 3) Crear la base de datos
-
-1. Abre `http://localhost/phpmyadmin`.
-2. Crea una base de datos llamada:
-   - `dispensador_medicina`
-3. Importa el archivo SQL del proyecto:
-   - `dispensador_medicina.sql`
+1. [Stack y arquitectura](#stack-y-arquitectura)
+2. [Módulos del sistema](#módulos-del-sistema)
+3. [Requisitos](#requisitos)
+4. [Despliegue en Render (recomendado)](#despliegue-en-render-recomendado)
+5. [Base de datos y migraciones recomendadas](#base-de-datos-y-migraciones-recomendadas)
+6. [Uso por roles](#uso-por-roles)
+7. [APIs disponibles](#apis-disponibles)
+8. [Notificaciones por correo](#notificaciones-por-correo)
+9. [Estructura del proyecto](#estructura-del-proyecto)
+10. [Troubleshooting](#troubleshooting)
+11. [Seguridad y siguientes mejoras](#seguridad-y-siguientes-mejoras)
 
 ---
 
-## 4) Configurar credenciales de base de datos
+## Stack y arquitectura
 
-La conexión usa variables de entorno (`DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASS`).
+- **Backend:** PHP 8.2 + PDO.
+- **Base de datos runtime:** PostgreSQL.
+- **Servidor web:** Apache (imagen `php:8.2-apache`).
+- **Correo:** `mail()` de PHP + `msmtp` en contenedor.
+- **API externa:** OpenFDA para catálogo de medicamentos.
 
-Si no defines variables, por defecto intentará:
-
-- Host: `127.0.0.1`
-- Puerto: `3306`
-- Base de datos: `dispensador_medicina`
-- Usuario: `root`
-- Password: `""` (vacío)
-
-En una instalación XAMPP típica, esto suele funcionar directamente.
+⚠️ El archivo `dispensador_medicina.sql` es un dump legado de MySQL/MariaDB. El código actual trabaja con PostgreSQL.
 
 ---
 
-## 5) (Opcional) Configurar Login con Google
+## Módulos del sistema
 
-Para que funcione el botón de Google:
-
-1. Entra a Google Cloud Console.
-2. Crea un proyecto o usa uno existente.
-3. Configura OAuth y obtén tu **Client ID** de web.
-4. Define la variable de entorno `GOOGLE_CLIENT_ID` en Apache/PHP.
-
-### Opción rápida en XAMPP (Apache)
-
-Puedes agregar en `httpd.conf` o en un VirtualHost:
-
-```apache
-SetEnv GOOGLE_CLIENT_ID "TU_CLIENT_ID.apps.googleusercontent.com"
-```
-
-Luego reinicia Apache.
-
-
-### Checklist rápida para que aparezca y funcione el botón
-
-1. En Google Cloud, crea credencial OAuth de tipo **Web application**.
-2. En `Authorized JavaScript origins`, agrega: `http://localhost`.
-3. Copia el Client ID y configúralo en Apache:
-
-```apache
-SetEnv GOOGLE_CLIENT_ID "TU_CLIENT_ID.apps.googleusercontent.com"
-```
-
-4. Reinicia Apache en XAMPP.
-5. Entra a `http://localhost/holaw/` y prueba el botón de Google.
-
-> Si no configuras `GOOGLE_CLIENT_ID`, el botón puede mostrarse pero la validación de audiencia del token en backend no tendrá el ID esperado.
+- **Autenticación local:** usuario + contraseña.
+- **Dashboard por rol:** `admin`, `cuidador`, `paciente`.
+- **Medicamentos:** alta manual y autocompletado desde OpenFDA (solo formas comestibles).
+- **Programación:** hora, cantidad, frecuencia, estado y duración.
+- **Historial:** registro de eventos de dispenso (`exitoso`/`error`).
+- **Asignaciones:** relación cuidador-paciente.
+- **Correos:** configuración de destinatarios y remitente activo.
 
 ---
 
+## Requisitos
 
-## 5.1) Migración recomendada para cuidador/paciente (próximos medicamentos)
+- Cuenta en **Render**.
+- Servicio PostgreSQL (Render PostgreSQL o externo compatible).
+- Servicio web conectado al repositorio.
+- Variables de entorno ya configuradas en Render (no se documentan aquí para evitar duplicidad).
+- Salida a internet para `api.fda.gov` (OpenFDA).
 
-Para que el cuidador vea los próximos medicamentos **de sus pacientes** (no solo propios), agrega relación cuidador-paciente y paciente objetivo en programación.
+---
 
-Ejecuta en phpMyAdmin SQL:
+## Despliegue en Render (recomendado)
+
+1. Sube este repositorio a GitHub/GitLab.
+2. En Render, crea un nuevo **Web Service** desde ese repo.
+3. Configura:
+   - **Runtime:** Docker
+   - **Port:** `80`
+4. Verifica que la base de datos y las variables del servicio ya estén definidas en Render.
+5. Haz deploy.
+
+Al terminar, Render te dará una URL pública (`https://tu-app.onrender.com`).
+
+---
+
+## Base de datos y migraciones recomendadas
+
+Para habilitar completamente la vista por paciente en rol **cuidador**, ejecuta estas migraciones en PostgreSQL:
 
 ```sql
 ALTER TABLE programacion
-  ADD COLUMN id_paciente INT NULL AFTER id_usuario,
-  ADD INDEX idx_programacion_id_paciente (id_paciente),
-  ADD CONSTRAINT fk_programacion_paciente
-    FOREIGN KEY (id_paciente) REFERENCES usuarios(id_usuario);
+  ADD COLUMN IF NOT EXISTS id_paciente INT NULL,
+  ADD COLUMN IF NOT EXISTS duracion_dias INT NULL;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'fk_programacion_paciente'
+  ) THEN
+    ALTER TABLE programacion
+      ADD CONSTRAINT fk_programacion_paciente
+      FOREIGN KEY (id_paciente) REFERENCES usuarios(id_usuario);
+  END IF;
+END $$;
+
+CREATE INDEX IF NOT EXISTS idx_programacion_id_paciente
+  ON programacion(id_paciente);
 
 CREATE TABLE IF NOT EXISTS cuidadores_pacientes (
-  id_relacion INT AUTO_INCREMENT PRIMARY KEY,
+  id_relacion SERIAL PRIMARY KEY,
   id_cuidador INT NOT NULL,
   id_paciente INT NOT NULL,
   fecha_asignacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE KEY uq_cuidador_paciente (id_cuidador, id_paciente),
+  UNIQUE (id_cuidador, id_paciente),
   CONSTRAINT fk_cp_cuidador FOREIGN KEY (id_cuidador) REFERENCES usuarios(id_usuario),
   CONSTRAINT fk_cp_paciente FOREIGN KEY (id_paciente) REFERENCES usuarios(id_usuario)
 );
 ```
 
-> Sin esta migración el sistema entra en modo legado: funciona, pero el cuidador ve su propia programación y no la de pacientes asignados.
+---
 
+## Uso por roles
 
-### Opción sin phpMyAdmin (recomendada)
+### Admin
+- Crear usuarios.
+- Gestionar asignaciones cuidador-paciente.
+- Programar dispensos.
+- Configurar correos y remitentes.
+- Ver historial general.
 
-Ahora puedes hacer esta configuración desde la web como admin:
+### Cuidador
+- Ver medicamentos.
+- Programar para pacientes asignados.
+- Ver historial.
+- Configurar correos de pacientes vinculados.
 
-1. Inicia sesión como `admin`.
-2. Ve a **Asignar pacientes a cuidadores**.
-3. Si aparece aviso de migración, pulsa **Aplicar migración automáticamente**.
-4. Selecciona cuidador y paciente, luego **Guardar asignación**.
-
-Con eso ya no necesitas crear relaciones manualmente en phpMyAdmin.
-
-
-## 6) Abrir el sistema
-
-Con Apache y MySQL activos, entra a:
-
-- `http://localhost/holaw/`
-
-Pantalla inicial:
-- Login tradicional (usuario/contraseña)
-- Login con Google (si está configurado)
+### Paciente
+- Ver próximos dispensos.
+- Consultar historial propio.
 
 ---
 
-## 7) ¿Cómo usarlo?
+## APIs disponibles
 
-### 7.1 Login tradicional
+### `POST /api/registrar_dispenso.php`
+Registra un evento de dispenso y dispara notificación por correo.
 
-- Ingresa `usuario` y `contrasena` de un registro existente en tabla `usuarios`.
-- Según el rol (`admin`, `cuidador`, `paciente`) redirige a su dashboard.
+Parámetros:
+- `id_programacion`
+- `resultado` (`exitoso` o `error`)
+- `observaciones` (opcional)
 
-### 7.2 Login con Google
+### `GET /api/obtener_programacion.php`
+Entrega dispensos activos que coinciden con la hora actual.
 
-- Haz clic en el botón de Google.
-- Si el correo no existe en `usuarios`, se crea automáticamente como rol `paciente`.
-- Luego inicia sesión y entra al dashboard correspondiente.
+### `POST /api/estado_dispositivo.php`
+Marca el dispositivo como conectado y actualiza `ultimo_ping`.
 
-### 7.3 Agregar medicamentos desde API externa (sin jarabes)
+### `GET /api/medicamentos_externos.php`
+Consulta OpenFDA y devuelve medicamentos filtrados para el dispensador.
 
-En la pantalla de agregar medicamentos:
+---
 
-1. Se carga un selector con datos desde OpenFDA.
-2. El sistema filtra presentaciones tipo `syrup` / `jarabe`.
-3. Al elegir un medicamento, autocompleta:
-   - nombre
-   - tipo
-   - dosis
-4. Completa `cantidad_total` y `fecha_vencimiento`.
-5. Guarda.
+## Notificaciones por correo
 
-### 7.4 Crear usuarios desde admin
+- Al registrar un dispenso, el sistema intenta enviar correo al usuario objetivo.
+- Destinatario:
+  1. `usuarios.correo` (si existe y válido), o
+  2. `usuarios.usuario` si contiene email válido.
+- Remitente:
+  1. remitente activo en `configuracion_correos_salida`, o
+  2. configuración de correo definida en entorno.
 
-1. Inicia sesión con rol `admin`.
-2. En el dashboard entra a **Crear usuarios**.
-3. Completa nombre, usuario, contraseña, rol y estado.
-4. Opcional: agrega correo (por ejemplo Gmail) para notificaciones.
+Si no hay transporte SMTP funcional, la app sigue operando pero sin envío de correos.
 
-### 7.5 Notificación por correo al dispensar
+---
 
-- Cada vez que `api/registrar_dispenso.php` registra un evento, se intenta enviar un correo al paciente programado.
-- Si existe columna `usuarios.correo`, usa ese valor; en caso contrario usa el campo `usuarios.usuario` si tiene formato email.
-- Puedes definir remitente con variable de entorno:
+## Estructura del proyecto
 
-```
-MAIL_FROM=tu_cuenta@gmail.com
-```
-
-> Nota: `mail()` depende de la configuración SMTP del servidor PHP.
-
-### 7.6 Configuración de correos (admin y cuidador)
-
-- Ruta: `usuarios/configurar_correos.php`.
-- Disponible para `admin` y `cuidador`.
-- `admin`: puede editar todos los correos y aplicar correo de prueba global.
-- `cuidador`: puede editar su correo y el de pacientes asignados.
-- Incluye botón **Enviar prueba** por usuario para validar envío real de correo.
-- `admin` puede cargar varios remitentes de salida y activar uno (ya no depende solo de una variable fija de entorno).
-
-Sentencia SQL de prueba:
-
-```sql
-UPDATE usuarios SET correo = 'aaronmachuca19@gmail.com';
+```text
+api/                 Endpoints para dispositivo e integraciones
+auth/                Login y logout
+asignaciones/        Gestión cuidador-paciente
+config/              Conexión PostgreSQL y notificaciones
+dashboard/           Vista principal por rol
+docker/              Entrypoint SMTP/msmtp
+historial/           Consulta de eventos de dispenso
+medicamentos/        Alta/listado/autocompletado
+programacion/        Programación de dispensos
+usuarios/            Alta de usuarios y correos
+index.php            Pantalla de acceso
+Dockerfile           Imagen base para Render
 ```
 
 ---
 
-## 8) Rutas importantes
+## Troubleshooting
 
-- Inicio: `http://localhost/holaw/`
-- Login clásico: `auth/validarlogin.php`
-- Login Google (backend): `auth/google_login.php`
-- API medicamentos externos: `api/medicamentos_externos.php`
-- Agregar medicamentos: `medicamentos/agregar.php`
+### Error de conexión a base de datos
+- Revisa configuración de la base de datos en Render.
+- Verifica host/puerto y credenciales.
+- Confirma que PostgreSQL acepte conexiones desde tu servicio.
 
----
+### No carga OpenFDA
+- Verifica salida a internet del servicio.
+- Prueba `https://api.fda.gov/drug/ndc.json?limit=1`.
 
-## 9) Solución de problemas
-
-### No conecta a la base de datos
-
-- Verifica que MySQL esté iniciado en XAMPP.
-- Verifica nombre de BD: `dispensador_medicina`.
-- Verifica usuario/password de MySQL.
-
-### No carga medicamentos externos
-
-- Verifica internet en el servidor local.
-- Prueba abrir manualmente:
-  - `https://api.fda.gov/drug/ndc.json?limit=100`
-
-### Falla login con Google
-
-- Confirma que `GOOGLE_CLIENT_ID` sea correcto.
-- Verifica que el dominio/origen `http://localhost` esté autorizado en Google Cloud.
-- Revisa consola del navegador para errores de OAuth.
-
-### Mensaje: "No se pudo enviar el correo de prueba..."
-
-- Esa alerta normalmente significa que PHP no tiene transporte de correo configurado (`SMTP` o `sendmail_path`).
-- En `usuarios/configurar_correos.php` ahora se muestra un diagnóstico rápido con esos valores.
-- Define `MAIL_FROM` con una cuenta válida y configura SMTP/sendmail en `php.ini` del entorno donde corre Apache/PHP.
+### No se envían correos
+- Revisa configuración SMTP del servicio.
+- Verifica remitente activo y destino válido.
+- Consulta el diagnóstico en `usuarios/configurar_correos.php`.
 
 ---
 
-## 10) Nota de seguridad (entorno local)
+## Seguridad y siguientes mejoras
 
-Este proyecto está orientado a entorno de desarrollo/local. Antes de producción se recomienda:
+Antes de producción real, se recomienda:
 
-- Endurecer validaciones y sanitización
-- Manejo robusto de logs/errores
-- Configuración segura de sesiones y cookies
-- Revisar políticas CORS/CSRF
-- Usar HTTPS
-
----
-
-## 11) SMTP en Docker (Render/no-localhost)
-
-El Dockerfile ya instala `msmtp` y configura:
-
-- `sendmail_path = "/usr/bin/msmtp -t -i"`
-- script `docker/entrypoint.sh` que genera `/etc/msmtprc` desde variables de entorno.
-
-Variables requeridas:
-
-- `SMTP_HOST` (ejemplo `smtp.gmail.com`)
-- `SMTP_PORT` (ejemplo `587`)
-- `SMTP_FROM` (o `MAIL_FROM`)
-- `SMTP_USER`
-- `SMTP_PASS` (App Password si usas Gmail)
+- CSRF tokens en formularios.
+- Políticas de sesión/cookies más estrictas.
+- Auditoría de permisos por endpoint.
+- Logs centralizados y alertas.
+- Gestión de secretos con rotación.
+- Hardening adicional de validación de entrada.
