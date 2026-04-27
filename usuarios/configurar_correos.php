@@ -12,15 +12,19 @@ $rol = (string) $_SESSION['rol'];
 $idActual = (int) ($_SESSION['id_usuario'] ?? 0);
 $mensaje = '';
 $error = '';
+$asuntoPruebaDefault = 'Prueba de notificación - Dispensador de Medicina';
+$cuerpoPruebaDefault = "Este es un correo de prueba para validar la configuración de notificaciones.\n\nSi recibiste este mensaje, la configuración de correo está funcionando.";
+$asuntoPruebaSesion = trim((string) ($_SESSION['asunto_prueba_correo'] ?? ''));
+$cuerpoPruebaSesion = trim((string) ($_SESSION['cuerpo_prueba_correo'] ?? ''));
+$asuntoPrueba = $asuntoPruebaSesion !== '' ? $asuntoPruebaSesion : $asuntoPruebaDefault;
+$cuerpoPrueba = $cuerpoPruebaSesion !== '' ? $cuerpoPruebaSesion : $cuerpoPruebaDefault;
 
-function enviarCorreoPrueba(string $destino, string $from = ''): bool
+function enviarCorreoPrueba(string $destino, string $asunto, string $cuerpo, string $from = ''): bool
 {
     if (!filter_var($destino, FILTER_VALIDATE_EMAIL)) {
         return false;
     }
 
-    $asunto = 'Prueba de notificación - Dispensador de Medicina';
-    $cuerpo = "Este es un correo de prueba para validar la configuración de notificaciones.\n\nSi recibiste este mensaje, la configuración de correo está funcionando.";
     $headers = [
         'MIME-Version: 1.0',
         'Content-type: text/plain; charset=UTF-8',
@@ -223,6 +227,21 @@ if ($rol === 'admin') {
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $hasCorreo) {
     $accion = (string) ($_POST['accion'] ?? '');
 
+    if ($accion === 'guardar_plantilla_prueba') {
+        $nuevoAsunto = trim((string) ($_POST['asunto_prueba'] ?? ''));
+        $nuevoCuerpo = trim((string) ($_POST['cuerpo_prueba'] ?? ''));
+
+        if ($nuevoAsunto === '' || $nuevoCuerpo === '') {
+            $error = 'El asunto y el mensaje de la plantilla de prueba no pueden estar vacíos.';
+        } else {
+            $_SESSION['asunto_prueba_correo'] = $nuevoAsunto;
+            $_SESSION['cuerpo_prueba_correo'] = $nuevoCuerpo;
+            $asuntoPrueba = $nuevoAsunto;
+            $cuerpoPrueba = $nuevoCuerpo;
+            $mensaje = 'Plantilla de prueba guardada para esta sesión.';
+        }
+    }
+
     if ($accion === 'guardar_correo') {
         $idUsuario = (int) ($_POST['id_usuario'] ?? 0);
         $correo = trim((string) ($_POST['correo'] ?? ''));
@@ -249,7 +268,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $hasCorreo) {
         } else {
             $fromCfg = obtenerRemitenteNotificacion($pdo);
             $from = trim((string) ($fromCfg['correo'] ?? ''));
-            $ok = enviarCorreoPrueba($correo, $from);
+            $ok = enviarCorreoPrueba($correo, $asuntoPrueba, $cuerpoPrueba, $from);
             if ($ok) {
                 $mensaje = "Correo de prueba enviado a {$correo}.";
             } else {
@@ -359,6 +378,20 @@ $remitenteActual = obtenerRemitenteNotificacion($pdo);
                 <p style="margin:8px 0 0;font-size:0.9rem;opacity:.9;">Valor aplicado: <code>aaronmachuca19@gmail.com</code>.</p>
             </form>
         <?php endif; ?>
+
+        <section class="card" style="margin-top:16px;">
+            <h2>Plantilla del correo de prueba (sin BD)</h2>
+            <p>Personaliza asunto y mensaje desde esta página. Se guarda en tu sesión actual.</p>
+            <form method="POST">
+                <input type="hidden" name="accion" value="guardar_plantilla_prueba">
+                <label for="asunto_prueba">Asunto de prueba</label>
+                <input id="asunto_prueba" type="text" name="asunto_prueba" value="<?= htmlspecialchars($asuntoPrueba) ?>" required>
+
+                <label for="cuerpo_prueba">Mensaje de prueba</label>
+                <textarea id="cuerpo_prueba" name="cuerpo_prueba" rows="5" required><?= htmlspecialchars($cuerpoPrueba) ?></textarea>
+                <button type="submit">Guardar plantilla temporal</button>
+            </form>
+        </section>
 
         <p style="margin-top: 8px;"><strong>Sentencia SQL para test:</strong><br><code>UPDATE usuarios SET correo = 'aaronmachuca19@gmail.com';</code></p>
 
