@@ -43,11 +43,18 @@ function diagnosticoMail(): array
     $smtpFromEnv = trim((string) (getenv('SMTP_FROM') ?: getenv('MAIL_FROM')));
     $smtpUserEnv = trim((string) getenv('SMTP_USER'));
     $smtpPassEnv = trim((string) getenv('SMTP_PASS'));
+    $usaMsmtp = ($sendmailPath !== '' && stripos($sendmailPath, 'msmtp') !== false);
 
     $resumen = [];
-    $resumen[] = $smtp !== '' ? "SMTP={$smtp}" : 'SMTP=no configurado';
-    $resumen[] = $smtpPort !== '' ? "smtp_port={$smtpPort}" : 'smtp_port=no configurado';
-    $resumen[] = $sendmailPath !== '' ? "sendmail_path={$sendmailPath}" : 'sendmail_path=no configurado';
+    if ($usaMsmtp) {
+        $resumen[] = $sendmailPath !== '' ? "transporte=msmtp ({$sendmailPath})" : 'transporte=msmtp';
+        $resumen[] = $smtp !== '' ? "php.ini SMTP(informativo)={$smtp}" : 'php.ini SMTP(informativo)=no configurado';
+        $resumen[] = $smtpPort !== '' ? "php.ini smtp_port(informativo)={$smtpPort}" : 'php.ini smtp_port(informativo)=no configurado';
+    } else {
+        $resumen[] = $smtp !== '' ? "SMTP={$smtp}" : 'SMTP=no configurado';
+        $resumen[] = $smtpPort !== '' ? "smtp_port={$smtpPort}" : 'smtp_port=no configurado';
+        $resumen[] = $sendmailPath !== '' ? "sendmail_path={$sendmailPath}" : 'sendmail_path=no configurado';
+    }
     $resumen[] = $smtpHostEnv !== '' ? "SMTP_HOST={$smtpHostEnv}" : 'SMTP_HOST=no configurado';
     $resumen[] = $smtpPortEnv !== '' ? "SMTP_PORT={$smtpPortEnv}" : 'SMTP_PORT=no configurado';
     $resumen[] = $smtpFromEnv !== '' ? "SMTP_FROM/MAIL_FROM={$smtpFromEnv}" : 'SMTP_FROM/MAIL_FROM=no configurado';
@@ -55,8 +62,11 @@ function diagnosticoMail(): array
     $resumen[] = $smtpPassEnv !== '' ? 'SMTP_PASS=configurado' : 'SMTP_PASS=no configurado';
 
     $alertas = [];
-    if ($sendmailPath !== '' && stripos($sendmailPath, 'msmtp') !== false) {
+    if ($usaMsmtp) {
         $alertas[] = 'En Linux/Render con sendmail_path=msmtp, PHP usa msmtp y no el SMTP/smtp_port de php.ini.';
+    }
+    if ($usaMsmtp && $smtpPort !== '' && $smtpPortEnv !== '' && $smtpPort !== $smtpPortEnv) {
+        $alertas[] = 'Hay dos puertos visibles: php.ini smtp_port es solo informativo; el puerto real para envío con msmtp es SMTP_PORT.';
     }
     if ($smtpHostEnv === '') {
         $alertas[] = 'Falta SMTP_HOST en variables de entorno.';
@@ -138,7 +148,11 @@ function obtenerDetalleMsmtp(): string
         return '';
     }
 
-    return mb_substr($texto, 0, 700);
+    if (function_exists('mb_substr')) {
+        return mb_substr($texto, 0, 700);
+    }
+
+    return substr($texto, 0, 700);
 }
 
 function asegurarTablaRemitentes(PDO $pdo): bool
