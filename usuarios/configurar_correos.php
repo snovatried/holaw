@@ -221,9 +221,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $hasCorreo) {
                     if (!empty($diag['alertas'])) {
                         $detalle = ' Alertas: ' . implode(' ', $diag['alertas']);
                     }
-                    $detalleMsmtp = obtenerDetalleMsmtp();
-                    if ($detalleMsmtp !== '') {
-                        $detalle .= " Último log msmtp: {$detalleMsmtp}";
+                    if ($rol === 'admin') {
+                        $detalleMsmtp = obtenerDetalleMsmtp();
+                        if ($detalleMsmtp !== '') {
+                            $detalle .= " Último log msmtp: {$detalleMsmtp}";
+                        }
                     }
                     $error = "No se pudo enviar el correo de prueba a {$correo}. Revisa credenciales/servidor SMTP ({$diag['resumen']}).{$detalle}";
                 }
