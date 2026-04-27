@@ -28,7 +28,7 @@ textarea {
 
 input::placeholder,
 textarea::placeholder {
-    color: var(--muted);
+    color: #8697a4;
 }
 
 input:focus,
