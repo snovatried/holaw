@@ -14,6 +14,12 @@ $mensaje = '';
 $error = '';
 $asuntoPruebaDefault = 'Prueba de notificación - Dispensador de Medicina';
 $cuerpoPruebaDefault = "Este es un correo de prueba para validar la configuración de notificaciones.\n\nSi recibiste este mensaje, la configuración de correo está funcionando.";
+
+$ownerPlantilla = (int) ($_SESSION['plantilla_prueba_owner_id'] ?? 0);
+if ($ownerPlantilla > 0 && $ownerPlantilla !== $idActual) {
+    unset($_SESSION['asunto_prueba_correo'], $_SESSION['cuerpo_prueba_correo'], $_SESSION['plantilla_prueba_owner_id']);
+}
+
 $asuntoPruebaSesion = trim((string) ($_SESSION['asunto_prueba_correo'] ?? ''));
 $cuerpoPruebaSesion = trim((string) ($_SESSION['cuerpo_prueba_correo'] ?? ''));
 $asuntoPrueba = $asuntoPruebaSesion !== '' ? $asuntoPruebaSesion : $asuntoPruebaDefault;
@@ -236,10 +242,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $hasCorreo) {
         } else {
             $_SESSION['asunto_prueba_correo'] = $nuevoAsunto;
             $_SESSION['cuerpo_prueba_correo'] = $nuevoCuerpo;
+            $_SESSION['plantilla_prueba_owner_id'] = $idActual;
             $asuntoPrueba = $nuevoAsunto;
             $cuerpoPrueba = $nuevoCuerpo;
             $mensaje = 'Plantilla de prueba guardada para esta sesión.';
         }
+    }
+
+    if ($accion === 'reset_plantilla_prueba') {
+        unset($_SESSION['asunto_prueba_correo'], $_SESSION['cuerpo_prueba_correo'], $_SESSION['plantilla_prueba_owner_id']);
+        $asuntoPrueba = $asuntoPruebaDefault;
+        $cuerpoPrueba = $cuerpoPruebaDefault;
+        $mensaje = 'Plantilla de prueba restablecida al valor inicial.';
     }
 
     if ($accion === 'guardar_correo') {
@@ -390,6 +404,10 @@ $remitenteActual = obtenerRemitenteNotificacion($pdo);
                 <label for="cuerpo_prueba">Mensaje de prueba</label>
                 <textarea id="cuerpo_prueba" name="cuerpo_prueba" rows="5" required><?= htmlspecialchars($cuerpoPrueba) ?></textarea>
                 <button type="submit">Guardar plantilla temporal</button>
+            </form>
+            <form method="POST" style="margin-top:8px;">
+                <input type="hidden" name="accion" value="reset_plantilla_prueba">
+                <button type="submit" class="btn btn-secondary">Restablecer a valores iniciales</button>
             </form>
         </section>
 
