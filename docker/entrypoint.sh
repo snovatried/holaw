@@ -47,7 +47,8 @@ EOF
     } >>/etc/msmtprc
   fi
 
-  chmod 600 /etc/msmtprc
+  chown root:www-data /etc/msmtprc
+  chmod 640 /etc/msmtprc
 else
   echo "[entrypoint] SMTP incompleto: se omite generación de /etc/msmtprc"
   echo "[entrypoint] Requerido: SMTP_HOST y SMTP_FROM (o MAIL_FROM)"
