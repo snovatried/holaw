@@ -62,6 +62,8 @@ function esFormaExcluida(string $tipo): bool
         'patch',
         'drops',
         'solution',
+        'solucion',
+        'solución',
         'suspensión',
         'suspension',
         'suppository',
