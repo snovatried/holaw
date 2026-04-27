@@ -13,7 +13,7 @@
 .login-title {
     text-align: center;
     margin-bottom: 18px;
-    color: #1f3a4a;
+    color: var(--h1);
 }
 
 .oauth-divider {
@@ -30,8 +30,8 @@
 }
 
 .help-text code {
-    background: #edf4f7;
+    background: var(--surface-soft);
     border-radius: 4px;
     padding: 1px 4px;
-    color: #2a4a5d;
+    color: var(--h1);
 }

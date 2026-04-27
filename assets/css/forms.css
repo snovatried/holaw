@@ -5,7 +5,7 @@ form {
 
 label {
     font-weight: 600;
-    color: #1f3a4a;
+    color: var(--h1);
 }
 
 input,
@@ -22,7 +22,7 @@ button {
 input,
 select,
 textarea {
-    background: #fff;
+    background: var(--surface);
     color: var(--text);
 }
 
@@ -36,18 +36,27 @@ select:focus,
 textarea:focus {
     outline: none;
     border-color: #79aebe;
-    box-shadow: 0 0 0 3px rgba(31, 111, 139, 0.12);
+    box-shadow: 0 0 0 3px rgba(31, 111, 139, 0.18);
+}
+
+@media (prefers-color-scheme: dark) {
+    input:focus,
+    select:focus,
+    textarea:focus {
+        border-color: #86b7cb;
+        box-shadow: 0 0 0 3px rgba(115, 170, 194, 0.2);
+    }
 }
 
 button {
-    background: var(--primary);
+    background: linear-gradient(135deg, #407f98, var(--primary));
     color: #fff;
     border: none;
     cursor: pointer;
 }
 
 button:hover {
-    background: #1b6179;
+    background: linear-gradient(135deg, #2f6f88, #275d73);
 }
 
 .form-actions {
