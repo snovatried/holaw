@@ -20,7 +20,11 @@ Aplicación web en **PHP** para administrar usuarios, medicamentos y programaci�
 10. [Troubleshooting](#troubleshooting)
 11. [Seguridad y siguientes mejoras](#seguridad-y-siguientes-mejoras)
 
----
+- **Backend**: PHP 8.2 (PDO).
+- **Base de datos en runtime**: **PostgreSQL** (DSN `pgsql`, compatible con Supabase).
+- **Servidor web**: Apache.
+- **Correo**: `mail()` de PHP (en Docker se enruta a `msmtp`).
+- **Integración externa**: OpenFDA para catálogo de medicamentos.
 
 ## Stack y arquitectura
 
@@ -44,7 +48,7 @@ Aplicación web en **PHP** para administrar usuarios, medicamentos y programaci�
 - **Asignaciones:** relación cuidador-paciente.
 - **Correos:** configuración de destinatarios y remitente activo.
 
----
+### 3) Abrir en navegador
 
 ## Requisitos
 
