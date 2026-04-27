@@ -2,7 +2,7 @@
 
 Aplicación web en **PHP** para administrar usuarios, medicamentos y programación de dispensos en un dispensador automático.
 
-> Proyecto preparado para desplegarse en **Render** con **PostgreSQL**.
+> Proyecto preparado para desplegarse en **Render** con **PostgreSQL (Supabase)**.
 
 ---
 
@@ -12,7 +12,7 @@ Aplicación web en **PHP** para administrar usuarios, medicamentos y programaci�
 2. [Módulos del sistema](#módulos-del-sistema)
 3. [Requisitos](#requisitos)
 4. [Despliegue en Render (recomendado)](#despliegue-en-render-recomendado)
-5. [Base de datos y migraciones recomendadas](#base-de-datos-y-migraciones-recomendadas)
+5. [Estado de base de datos](#estado-de-base-de-datos)
 6. [Uso por roles](#uso-por-roles)
 7. [APIs disponibles](#apis-disponibles)
 8. [Notificaciones por correo](#notificaciones-por-correo)
@@ -25,12 +25,12 @@ Aplicación web en **PHP** para administrar usuarios, medicamentos y programaci�
 ## Stack y arquitectura
 
 - **Backend:** PHP 8.2 + PDO.
-- **Base de datos runtime:** PostgreSQL.
+- **Base de datos runtime:** PostgreSQL (Supabase).
 - **Servidor web:** Apache (imagen `php:8.2-apache`).
 - **Correo:** `mail()` de PHP + `msmtp` en contenedor.
 - **API externa:** OpenFDA para catálogo de medicamentos.
 
-⚠️ El archivo `dispensador_medicina.sql` es un dump legado de MySQL/MariaDB. El código actual trabaja con PostgreSQL.
+⚠️ El archivo `dispensador_medicina.sql` es un dump legado de MySQL/MariaDB y se conserva solo como referencia histórica.
 
 ---
 
@@ -49,9 +49,9 @@ Aplicación web en **PHP** para administrar usuarios, medicamentos y programaci�
 ## Requisitos
 
 - Cuenta en **Render**.
-- Servicio PostgreSQL (Render PostgreSQL o externo compatible).
-- Servicio web conectado al repositorio.
-- Variables de entorno ya configuradas en Render (no se documentan aquí para evitar duplicidad).
+- Proyecto en repositorio Git conectado a Render.
+- Base de datos PostgreSQL en Supabase ya vinculada al servicio.
+- Variables de entorno ya configuradas en Render.
 - Salida a internet para `api.fda.gov` (OpenFDA).
 
 ---
@@ -59,50 +59,23 @@ Aplicación web en **PHP** para administrar usuarios, medicamentos y programaci�
 ## Despliegue en Render (recomendado)
 
 1. Sube este repositorio a GitHub/GitLab.
-2. En Render, crea un nuevo **Web Service** desde ese repo.
+2. En Render, crea o reutiliza un **Web Service** desde ese repo.
 3. Configura:
    - **Runtime:** Docker
    - **Port:** `80`
-4. Verifica que la base de datos y las variables del servicio ya estén definidas en Render.
+4. Verifica conexión con Supabase y variables del servicio en Render.
 5. Haz deploy.
 
 Al terminar, Render te dará una URL pública (`https://tu-app.onrender.com`).
 
 ---
 
-## Base de datos y migraciones recomendadas
+## Estado de base de datos
 
-Para habilitar completamente la vista por paciente en rol **cuidador**, ejecuta estas migraciones en PostgreSQL:
+Los cambios SQL de esquema ya están aplicados en la base de Supabase usada por Render.
 
-```sql
-ALTER TABLE programacion
-  ADD COLUMN IF NOT EXISTS id_paciente INT NULL,
-  ADD COLUMN IF NOT EXISTS duracion_dias INT NULL;
-
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_constraint WHERE conname = 'fk_programacion_paciente'
-  ) THEN
-    ALTER TABLE programacion
-      ADD CONSTRAINT fk_programacion_paciente
-      FOREIGN KEY (id_paciente) REFERENCES usuarios(id_usuario);
-  END IF;
-END $$;
-
-CREATE INDEX IF NOT EXISTS idx_programacion_id_paciente
-  ON programacion(id_paciente);
-
-CREATE TABLE IF NOT EXISTS cuidadores_pacientes (
-  id_relacion SERIAL PRIMARY KEY,
-  id_cuidador INT NOT NULL,
-  id_paciente INT NOT NULL,
-  fecha_asignacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE (id_cuidador, id_paciente),
-  CONSTRAINT fk_cp_cuidador FOREIGN KEY (id_cuidador) REFERENCES usuarios(id_usuario),
-  CONSTRAINT fk_cp_paciente FOREIGN KEY (id_paciente) REFERENCES usuarios(id_usuario)
-);
-```
+- No es necesario ejecutar migraciones manuales al levantar nuevas instancias del servicio en Render.
+- Las instancias apuntan a la misma base de datos gestionada, por lo que ya heredan esos cambios.
 
 ---
 
@@ -184,9 +157,9 @@ Dockerfile           Imagen base para Render
 ## Troubleshooting
 
 ### Error de conexión a base de datos
-- Revisa configuración de la base de datos en Render.
+- Revisa configuración de conexión Supabase en Render.
 - Verifica host/puerto y credenciales.
-- Confirma que PostgreSQL acepte conexiones desde tu servicio.
+- Confirma que la base acepte conexiones desde el servicio.
 
 ### No carga OpenFDA
 - Verifica salida a internet del servicio.
