@@ -38,18 +38,117 @@ function diagnosticoMail(): array
     $smtp = trim((string) ini_get('SMTP'));
     $smtpPort = trim((string) ini_get('smtp_port'));
     $sendmailPath = trim((string) ini_get('sendmail_path'));
+    $smtpHostEnv = trim((string) getenv('SMTP_HOST'));
+    $smtpPortEnv = trim((string) getenv('SMTP_PORT'));
+    $smtpFromEnv = trim((string) (getenv('SMTP_FROM') ?: getenv('MAIL_FROM')));
+    $smtpUserEnv = trim((string) getenv('SMTP_USER'));
+    $smtpPassEnv = trim((string) getenv('SMTP_PASS'));
+    $usaMsmtp = ($sendmailPath !== '' && stripos($sendmailPath, 'msmtp') !== false);
 
     $resumen = [];
-    $resumen[] = $smtp !== '' ? "SMTP={$smtp}" : 'SMTP=no configurado';
-    $resumen[] = $smtpPort !== '' ? "smtp_port={$smtpPort}" : 'smtp_port=no configurado';
-    $resumen[] = $sendmailPath !== '' ? "sendmail_path={$sendmailPath}" : 'sendmail_path=no configurado';
+    if ($usaMsmtp) {
+        $resumen[] = $sendmailPath !== '' ? "transporte=msmtp ({$sendmailPath})" : 'transporte=msmtp';
+        $resumen[] = $smtp !== '' ? "php.ini SMTP(informativo)={$smtp}" : 'php.ini SMTP(informativo)=no configurado';
+        $resumen[] = $smtpPort !== '' ? "php.ini smtp_port(informativo)={$smtpPort}" : 'php.ini smtp_port(informativo)=no configurado';
+    } else {
+        $resumen[] = $smtp !== '' ? "SMTP={$smtp}" : 'SMTP=no configurado';
+        $resumen[] = $smtpPort !== '' ? "smtp_port={$smtpPort}" : 'smtp_port=no configurado';
+        $resumen[] = $sendmailPath !== '' ? "sendmail_path={$sendmailPath}" : 'sendmail_path=no configurado';
+    }
+    $resumen[] = $smtpHostEnv !== '' ? "SMTP_HOST={$smtpHostEnv}" : 'SMTP_HOST=no configurado';
+    $resumen[] = $smtpPortEnv !== '' ? "SMTP_PORT={$smtpPortEnv}" : 'SMTP_PORT=no configurado';
+    $resumen[] = $smtpFromEnv !== '' ? "SMTP_FROM/MAIL_FROM={$smtpFromEnv}" : 'SMTP_FROM/MAIL_FROM=no configurado';
+    $resumen[] = $smtpUserEnv !== '' ? 'SMTP_USER=configurado' : 'SMTP_USER=no configurado';
+    $resumen[] = $smtpPassEnv !== '' ? 'SMTP_PASS=configurado' : 'SMTP_PASS=no configurado';
+
+    $alertas = [];
+    if ($usaMsmtp) {
+        $alertas[] = 'En Linux/Render con sendmail_path=msmtp, PHP usa msmtp y no el SMTP/smtp_port de php.ini.';
+    }
+    if ($usaMsmtp && $smtpPort !== '' && $smtpPortEnv !== '' && $smtpPort !== $smtpPortEnv) {
+        $alertas[] = 'Hay dos puertos visibles: php.ini smtp_port es solo informativo; el puerto real para envío con msmtp es SMTP_PORT.';
+    }
+    if ($smtpHostEnv === '') {
+        $alertas[] = 'Falta SMTP_HOST en variables de entorno.';
+    }
+    if ($smtpFromEnv === '') {
+        $alertas[] = 'Falta SMTP_FROM o MAIL_FROM en variables de entorno.';
+    }
+    if (($smtpHostEnv === 'localhost' || $smtpHostEnv === '127.0.0.1') && $smtpPortEnv === '25') {
+        $alertas[] = 'Si usas localhost:25, verifica que exista un servidor SMTP escuchando dentro del contenedor.';
+    }
+    if ($smtpHostEnv !== '' && $smtpHostEnv !== 'localhost' && $smtpHostEnv !== '127.0.0.1' && $smtpUserEnv === '') {
+        $alertas[] = 'SMTP_USER no está configurado. En Render/proveedores externos normalmente se requiere autenticación.';
+    }
+    if ($smtpHostEnv === 'smtp.gmail.com' && $smtpUserEnv !== '' && $smtpPassEnv === '') {
+        $alertas[] = 'Gmail requiere SMTP_PASS (normalmente App Password de 16 caracteres, no la contraseña normal).';
+    }
 
     $faltaTransporte = ($smtp === '' && $sendmailPath === '');
+    $msmtpConfigOk = is_readable('/etc/msmtprc');
+    if (!$msmtpConfigOk) {
+        $alertas[] = 'No existe /etc/msmtprc (msmtp no tiene cuenta SMTP cargada).';
+    }
 
     return [
         'falta_transporte' => $faltaTransporte,
+        'msmtp_config_ok' => $msmtpConfigOk,
+        'alertas' => $alertas,
         'resumen' => implode(' | ', $resumen),
     ];
+}
+
+function obtenerDetalleMsmtp(): string
+{
+    $rutaLog = '/tmp/msmtp.log';
+    if (!is_readable($rutaLog)) {
+        return '';
+    }
+
+    $maxBytes = 65536; // lectura acotada (~64KB) para evitar costo variable con logs grandes
+    $size = @filesize($rutaLog);
+    if ($size === false || $size <= 0) {
+        return '';
+    }
+
+    $fh = @fopen($rutaLog, 'rb');
+    if ($fh === false) {
+        return '';
+    }
+
+    $offset = max(0, $size - $maxBytes);
+    if (@fseek($fh, $offset, SEEK_SET) !== 0) {
+        fclose($fh);
+        return '';
+    }
+
+    $contenido = @stream_get_contents($fh);
+    fclose($fh);
+
+    if ($contenido === false || trim($contenido) === '') {
+        return '';
+    }
+
+    if ($offset > 0) {
+        $posSalto = strpos($contenido, "\n");
+        if ($posSalto !== false) {
+            $contenido = substr($contenido, $posSalto + 1);
+        }
+    }
+
+    $lineas = preg_split('/\r\n|\r|\n/', trim($contenido));
+    if (!is_array($lineas) || empty($lineas)) {
+        return '';
+    }
+
+    $ultimas = array_slice($lineas, -8);
+    $texto = trim(implode(' | ', array_filter(array_map('trim', $ultimas), static fn ($v) => $v !== '')));
+
+    if ($texto === '') {
+        return '';
+    }
+
+    return mb_substr($texto, 0, 700);
 }
 
 function asegurarTablaRemitentes(PDO $pdo): bool
@@ -154,7 +253,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $hasCorreo) {
                 if ($diag['falta_transporte']) {
                     $error = "No se pudo enviar el correo de prueba a {$correo}. No hay transporte de correo configurado en PHP ({$diag['resumen']}).";
                 } else {
-                    $error = "No se pudo enviar el correo de prueba a {$correo}. Revisa credenciales/servidor SMTP ({$diag['resumen']}).";
+                    $detalle = '';
+                    if (!empty($diag['alertas'])) {
+                        $detalle = ' Alertas: ' . implode(' ', $diag['alertas']);
+                    }
+                    if ($rol === 'admin') {
+                        $detalleMsmtp = obtenerDetalleMsmtp();
+                        if ($detalleMsmtp !== '') {
+                            $detalle .= " Último log msmtp: {$detalleMsmtp}";
+                        }
+                    }
+                    $error = "No se pudo enviar el correo de prueba a {$correo}. Revisa credenciales/servidor SMTP ({$diag['resumen']}).{$detalle}";
                 }
             }
         }
