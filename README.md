@@ -173,6 +173,7 @@ Dockerfile           Imagen base para Render
 - Revisa configuración SMTP del servicio.
 - Verifica remitente activo y destino válido.
 - Consulta el diagnóstico en `usuarios/configurar_correos.php`.
+- En Docker, `msmtp` ahora solo requiere `SMTP_HOST` y `SMTP_FROM`/`MAIL_FROM`; `SMTP_USER` y `SMTP_PASS` son opcionales si tu relay local no usa autenticación (ejemplo `localhost:25`).
 
 ---
 
