@@ -1,5 +1,6 @@
 <?php
 session_start();
+unset($_SESSION['asunto_prueba_correo'], $_SESSION['cuerpo_prueba_correo'], $_SESSION['plantilla_prueba_owner_id']);
 // Unset all session variables
 $_SESSION = [];
 // Destroy the session cookie if set
