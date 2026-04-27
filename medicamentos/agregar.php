@@ -33,7 +33,7 @@ if ($rol === 'admin') {
         </p>
 
         <div class="alert alert-success">
-            Catálogo conectado: se muestran solo medicamentos comestibles (pastillas/cápsulas) y se autocompleta el formulario.
+            Catálogo conectado (Ecuador): se muestran solo medicamentos comestibles (pastillas/cápsulas) y se autocompleta el formulario.
         </div>
         <?php if (($_GET['error'] ?? '') === 'tipo_no_comestible'): ?>
             <div class="alert alert-error">
@@ -77,6 +77,9 @@ const formMedicamento = document.getElementById('form_medicamento');
 function esTipoComestible(tipo = '') {
     const t = String(tipo).toLowerCase().trim();
     if (!t) return false;
+
+    const bloqueados = ['solution', 'solucion', 'solución', 'syrup', 'jarabe', 'suspension', 'suspensión'];
+    if (bloqueados.some((b) => t.includes(b))) return false;
 
     const permitidos = [
         'tablet', 'capsule', 'caplet', 'pill', 'comprimido', 'cápsula',

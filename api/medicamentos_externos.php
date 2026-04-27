@@ -1,9 +1,10 @@
 <?php
 header('Content-Type: application/json');
 
-$baseUrl = 'https://api.fda.gov/drug/ndc.json';
-$batchSize = 100;
-$maxBatches = 5;
+$apiCkanBase = 'https://datosabiertos.gob.ec/api/3/action';
+$searchQuery = 'medicamentos arcsa';
+$resourceRows = 200;
+$maxPages = 5;
 $maxMedicamentos = 300;
 
 function esFormaComestible(string $tipo): bool
@@ -27,6 +28,8 @@ function esFormaComestible(string $tipo): bool
         'lozenge',
         'troche',
         'oral',
+        'sólido oral',
+        'solido oral',
     ];
 
     foreach ($formasPermitidas as $forma) {
@@ -38,64 +41,227 @@ function esFormaComestible(string $tipo): bool
     return false;
 }
 
-$context = stream_context_create([
-    'http' => [
-        'timeout' => 8,
-    ],
-]);
+function esFormaExcluida(string $tipo): bool
+{
+    $tipoLower = mb_strtolower(trim($tipo), 'UTF-8');
+    if ($tipoLower === '') {
+        return true;
+    }
+
+    $bloqueadas = [
+        'syrup',
+        'jarabe',
+        'spray',
+        'aerosol',
+        'inhal',
+        'injection',
+        'injectable',
+        'cream',
+        'ointment',
+        'gel',
+        'patch',
+        'drops',
+        'solution',
+        'solucion',
+        'solución',
+        'suspensión',
+        'suspension',
+        'suppository',
+        'shampoo',
+        'lotion',
+        'líquido',
+        'liquido',
+        'topico',
+        'tópico',
+    ];
+
+    foreach ($bloqueadas as $forma) {
+        if (str_contains($tipoLower, $forma)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function normalizarClave(string $texto): string
+{
+    $texto = mb_strtolower(trim($texto), 'UTF-8');
+    return preg_replace('/\s+/', '_', $texto) ?? '';
+}
+
+function buscarCampo(array $item, array $aliases): string
+{
+    $index = [];
+    foreach ($item as $key => $value) {
+        $index[normalizarClave((string) $key)] = $value;
+    }
+
+    foreach ($aliases as $alias) {
+        $clave = normalizarClave($alias);
+        if (!array_key_exists($clave, $index)) {
+            continue;
+        }
+
+        $valor = trim((string) $index[$clave]);
+        if ($valor !== '') {
+            return $valor;
+        }
+    }
+
+    return '';
+}
+
+function extraerTipoDesdeTexto(string $texto): string
+{
+    $textoLower = mb_strtolower($texto, 'UTF-8');
+
+    $mapa = [
+        'sólido oral' => ['sólido oral', 'solido oral'],
+        'tablet' => ['tablet'],
+        'capsule' => ['capsule', 'cápsula', 'capsula'],
+        'pill' => ['pill', 'pastilla', 'comprimido'],
+    ];
+
+    foreach ($mapa as $tipo => $patrones) {
+        foreach ($patrones as $patron) {
+            if (str_contains($textoLower, $patron)) {
+                return $tipo;
+            }
+        }
+    }
+
+    return '';
+}
+
+function obtenerJson(string $url): ?array
+{
+    $context = stream_context_create([
+        'http' => [
+            'timeout' => 10,
+            'header' => "Accept: application/json\r\n",
+        ],
+    ]);
+
+    $response = @file_get_contents($url, false, $context);
+    if ($response === false) {
+        return null;
+    }
+
+    $data = json_decode($response, true);
+    return is_array($data) ? $data : null;
+}
+
+$searchUrl = $apiCkanBase . '/package_search?q=' . urlencode($searchQuery) . '&rows=8';
+$searchData = obtenerJson($searchUrl);
+if (!$searchData || !($searchData['success'] ?? false)) {
+    http_response_code(502);
+    echo json_encode(['error' => 'No se pudo consultar la API externa de medicamentos de Ecuador']);
+    exit;
+}
+
+$resourceId = '';
+$results = $searchData['result']['results'] ?? [];
+foreach ($results as $dataset) {
+    foreach (($dataset['resources'] ?? []) as $resource) {
+        $resourceFormat = mb_strtolower(trim((string) ($resource['format'] ?? '')), 'UTF-8');
+        $name = mb_strtolower(trim((string) ($resource['name'] ?? '')), 'UTF-8');
+        $desc = mb_strtolower(trim((string) ($resource['description'] ?? '')), 'UTF-8');
+
+        if (!($resource['datastore_active'] ?? false)) {
+            continue;
+        }
+
+        $esMedicamentos = str_contains($name, 'medicamento')
+            || str_contains($desc, 'medicamento')
+            || str_contains(mb_strtolower((string) ($dataset['title'] ?? ''), 'UTF-8'), 'medicamento');
+
+        if (!$esMedicamentos) {
+            continue;
+        }
+
+        if (!in_array($resourceFormat, ['csv', 'xlsx', 'json', 'ods'], true)) {
+            continue;
+        }
+
+        $resourceId = trim((string) ($resource['id'] ?? ''));
+        if ($resourceId !== '') {
+            break 2;
+        }
+    }
+}
+
+if ($resourceId === '') {
+    http_response_code(502);
+    echo json_encode(['error' => 'No se encontró un catálogo compatible en la API de Ecuador']);
+    exit;
+}
 
 $medicamentos = [];
 $seen = [];
 
-for ($batch = 0; $batch < $maxBatches; $batch++) {
-    $skip = $batch * $batchSize;
-    $url = $baseUrl . '?limit=' . $batchSize . '&skip=' . $skip;
-    $response = @file_get_contents($url, false, $context);
+for ($page = 0; $page < $maxPages; $page++) {
+    $offset = $page * $resourceRows;
+    $url = $apiCkanBase
+        . '/datastore_search?resource_id=' . urlencode($resourceId)
+        . '&limit=' . $resourceRows
+        . '&offset=' . $offset;
 
-    if ($response === false) {
-        if ($batch === 0) {
+    $data = obtenerJson($url);
+    if (!$data || !($data['success'] ?? false)) {
+        if ($page === 0) {
             http_response_code(502);
-            echo json_encode(['error' => 'No se pudo consultar la API externa']);
+            echo json_encode(['error' => 'No se pudo leer el catálogo de medicamentos de Ecuador']);
             exit;
         }
         break;
     }
 
-    $data = json_decode($response, true);
-    $results = $data['results'] ?? [];
-
-    if (count($results) === 0) {
+    $rows = $data['result']['records'] ?? [];
+    if (!is_array($rows) || count($rows) === 0) {
         break;
     }
 
-    foreach ($results as $item) {
-        $nombre = trim($item['brand_name'] ?? '');
-        $tipo = trim($item['dosage_form'] ?? '');
-        $dosis = trim($item['active_ingredients'][0]['strength'] ?? '');
+    foreach ($rows as $item) {
+        if (!is_array($item)) {
+            continue;
+        }
+
+        $nombre = buscarCampo($item, [
+            'nombre_medicamento',
+            'nombre_del_medicamento',
+            'medicamento',
+            'nombre_comercial',
+            'principio_activo',
+            'producto',
+            'descripcion',
+            'dci',
+        ]);
+
+        $tipo = buscarCampo($item, [
+            'forma_farmaceutica',
+            'tipo',
+            'presentacion',
+            'via_administracion',
+            'forma',
+        ]);
+
+        $dosis = buscarCampo($item, [
+            'concentracion',
+            'dosis',
+            'dosificacion',
+            'strength',
+        ]);
 
         if ($nombre === '') {
             continue;
         }
 
-        $tipoLower = mb_strtolower($tipo, 'UTF-8');
-        if (
-            str_contains($tipoLower, 'syrup')
-            || str_contains($tipoLower, 'jarabe')
-            || str_contains($tipoLower, 'spray')
-            || str_contains($tipoLower, 'aerosol')
-            || str_contains($tipoLower, 'inhal')
-            || str_contains($tipoLower, 'injection')
-            || str_contains($tipoLower, 'injectable')
-            || str_contains($tipoLower, 'cream')
-            || str_contains($tipoLower, 'ointment')
-            || str_contains($tipoLower, 'gel')
-            || str_contains($tipoLower, 'patch')
-            || str_contains($tipoLower, 'drops')
-            || str_contains($tipoLower, 'solution')
-            || str_contains($tipoLower, 'suppository')
-            || str_contains($tipoLower, 'shampoo')
-            || str_contains($tipoLower, 'lotion')
-        ) {
+        if ($tipo === '') {
+            $tipo = extraerTipoDesdeTexto($nombre . ' ' . $dosis);
+        }
+
+        if (esFormaExcluida($tipo)) {
             continue;
         }
 
@@ -119,9 +285,14 @@ for ($batch = 0; $batch < $maxBatches; $batch++) {
             break 2;
         }
     }
+
+    if (count($rows) < $resourceRows) {
+        break;
+    }
 }
 
 echo json_encode([
+    'origen' => 'Datos Abiertos Ecuador (ARCSA)',
     'total' => count($medicamentos),
     'medicamentos' => array_values($medicamentos),
 ]);

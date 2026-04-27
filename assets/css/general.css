@@ -1,13 +1,37 @@
 :root {
-    --card: rgba(13, 22, 44, 0.9);
-    --card-strong: rgba(16, 28, 57, 0.96);
-    --text: #e2e8f0;
-    --muted: #94a3b8;
-    --primary: #38bdf8;
-    --secondary: #6366f1;
-    --border: rgba(148, 163, 184, 0.28);
-    --success: #22c55e;
-    --danger: #ef4444;
+    --bg: #e9eff3;
+    --surface: #f2f6f9;
+    --surface-soft: #e6edf2;
+    --text: #22313f;
+    --muted: #5d6d7b;
+    --primary: #2f6f88;
+    --primary-soft: #d7e6ee;
+    --secondary: #4e8b78;
+    --border: #c9d7e0;
+    --success: #2e7d32;
+    --danger: #b42318;
+    --shadow: rgba(22, 46, 63, 0.11);
+    --h1: #1d3748;
+    --th: #28475a;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg: #0d1722;
+        --surface: #142434;
+        --surface-soft: #1c3041;
+        --text: #dce7ef;
+        --muted: #9fb0bf;
+        --primary: #73aac2;
+        --primary-soft: #1b3e54;
+        --secondary: #6fb29d;
+        --border: #2f475a;
+        --success: #6dc08f;
+        --danger: #f28c87;
+        --shadow: rgba(2, 8, 20, 0.45);
+        --h1: #e6f1f7;
+        --th: #d5e7f2;
+    }
 }
 
 * {
@@ -20,14 +44,24 @@ body {
     min-height: 100vh;
     color: var(--text);
     background:
-        radial-gradient(circle at 8% 14%, rgba(14, 116, 144, 0.28), transparent 34%),
-        radial-gradient(circle at 90% 15%, rgba(79, 70, 229, 0.24), transparent 32%),
-        radial-gradient(circle at 30% 90%, rgba(15, 23, 42, 0.35), transparent 38%),
-        linear-gradient(150deg, #030712 0%, #0b1224 48%, #111827 100%);
+        radial-gradient(circle at 8% 10%, rgba(78, 139, 120, 0.16), transparent 42%),
+        radial-gradient(circle at 92% 10%, rgba(47, 111, 136, 0.18), transparent 40%),
+        radial-gradient(circle at 45% 92%, rgba(76, 112, 133, 0.14), transparent 42%),
+        linear-gradient(165deg, #f1f5f8 0%, var(--bg) 100%);
+}
+
+@media (prefers-color-scheme: dark) {
+    body {
+        background:
+            radial-gradient(circle at 8% 10%, rgba(78, 139, 120, 0.22), transparent 42%),
+            radial-gradient(circle at 92% 10%, rgba(47, 111, 136, 0.24), transparent 40%),
+            radial-gradient(circle at 45% 92%, rgba(76, 112, 133, 0.20), transparent 42%),
+            linear-gradient(165deg, #0a141e 0%, var(--bg) 100%);
+    }
 }
 
 body.dark-fixed {
-    background-color: #030712;
+    background: var(--bg);
 }
 
 .container {
@@ -37,17 +71,17 @@ body.dark-fixed {
 }
 
 .card {
-    background: var(--card);
+    background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 14px;
     padding: 20px;
-    box-shadow: 0 14px 40px rgba(2, 8, 23, 0.32);
-    backdrop-filter: blur(8px);
+    box-shadow: 0 10px 30px var(--shadow);
 }
 
 h1, h2 {
     margin-top: 0;
-    letter-spacing: 0.4px;
+    letter-spacing: 0.2px;
+    color: var(--h1);
 }
 
 h1 {
@@ -70,20 +104,30 @@ a:hover {
 }
 
 .alert-error {
-    background: rgba(127, 29, 29, 0.35);
-    color: #fecaca;
-    border: 1px solid rgba(248, 113, 113, 0.6);
+    background: rgba(180, 35, 24, 0.12);
+    color: #862019;
+    border: 1px solid rgba(180, 35, 24, 0.35);
 }
 
 .alert-success {
-    background: rgba(20, 83, 45, 0.35);
-    color: #bbf7d0;
-    border: 1px solid rgba(34, 197, 94, 0.5);
+    background: rgba(46, 125, 50, 0.13);
+    color: #1f5f29;
+    border: 1px solid rgba(46, 125, 50, 0.34);
+}
+
+@media (prefers-color-scheme: dark) {
+    .alert-error {
+        color: #f7c0bc;
+    }
+
+    .alert-success {
+        color: #b8edc6;
+    }
 }
 
 .btn {
     display: inline-block;
-    background: linear-gradient(120deg, var(--primary), var(--secondary));
+    background: linear-gradient(135deg, #407f98, var(--primary));
     color: #fff;
     border: 0;
     border-radius: 10px;
@@ -94,30 +138,30 @@ a:hover {
 }
 
 .btn:hover {
-    filter: brightness(1.06);
+    background: linear-gradient(135deg, #2f6f88, #275d73);
     text-decoration: none;
 }
 
 .btn-secondary {
-    background: linear-gradient(120deg, #475569, #334155);
+    background: linear-gradient(135deg, #738492, var(--muted));
 }
 
 .btn-secondary:hover {
-    background: linear-gradient(120deg, #3f5068, #2b3647);
+    background: linear-gradient(135deg, #5b6a77, #4f5d6a);
 }
 
 .btn-danger {
-    background: linear-gradient(120deg, #dc2626, #b91c1c);
+    background: linear-gradient(135deg, #cc564d, var(--danger));
 }
 
 .btn-danger:hover {
-    background: linear-gradient(120deg, #b91c1c, #991b1b);
+    background: linear-gradient(135deg, #b63f37, #9d2f28);
 }
 
 table {
     width: 100%;
     border-collapse: collapse;
-    background: var(--card-strong);
+    background: var(--surface);
     border-radius: 10px;
     overflow: hidden;
 }
@@ -130,8 +174,8 @@ td {
 }
 
 th {
-    background: rgba(30, 41, 59, 0.28);
-    color: var(--text);
+    background: var(--surface-soft);
+    color: var(--th);
 }
 
 td {
