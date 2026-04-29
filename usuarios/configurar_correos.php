@@ -24,6 +24,7 @@ $asuntoPruebaSesion = trim((string) ($_SESSION['asunto_prueba_correo'] ?? ''));
 $cuerpoPruebaSesion = trim((string) ($_SESSION['cuerpo_prueba_correo'] ?? ''));
 $asuntoPrueba = $asuntoPruebaSesion !== '' ? $asuntoPruebaSesion : $asuntoPruebaDefault;
 $cuerpoPrueba = $cuerpoPruebaSesion !== '' ? $cuerpoPruebaSesion : $cuerpoPruebaDefault;
+$mostrarDiagnostico = !empty($_SESSION['mostrar_diag_correo']);
 
 function enviarCorreoPrueba(string $destino, string $asunto, string $cuerpo, string $from = ''): bool
 {
@@ -255,6 +256,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $hasCorreo) {
         $cuerpoPrueba = $cuerpoPruebaDefault;
         $mensaje = 'Plantilla de prueba restablecida al valor inicial.';
     }
+    if ($accion === 'mostrar_diagnostico_correo') {
+        $_SESSION['mostrar_diag_correo'] = true;
+        $mostrarDiagnostico = true;
+        $mensaje = 'Diagnóstico de correo visible.';
+    }
 
     if ($accion === 'guardar_correo') {
         $idUsuario = (int) ($_POST['id_usuario'] ?? 0);
@@ -373,6 +379,28 @@ $remitenteActual = obtenerRemitenteNotificacion($pdo);
         <p style="margin-top:8px;font-size:0.9rem;opacity:.85;">
             Diagnóstico actual de PHP mail: <code><?= htmlspecialchars(diagnosticoMail()['resumen']) ?></code>
         </p>
+        <form method="POST" style="margin-top:8px;">
+            <input type="hidden" name="accion" value="mostrar_diagnostico_correo">
+            <button type="submit" class="btn btn-secondary">Mostrar diagnóstico completo de correo</button>
+        </form>
+        <?php if ($mostrarDiagnostico): ?>
+            <?php $diagCompleto = diagnosticoMail(); ?>
+            <div class="card" style="margin-top:12px;">
+                <h2>Diagnóstico completo</h2>
+                <p><strong>Resumen:</strong> <code><?= htmlspecialchars((string) $diagCompleto['resumen']) ?></code></p>
+                <p><strong>Transporte detectado:</strong> <?= !empty($diagCompleto['falta_transporte']) ? 'No configurado' : 'Configurado' ?></p>
+                <p><strong>Archivo /etc/msmtprc:</strong> <?= !empty($diagCompleto['msmtp_config_ok']) ? 'Disponible' : 'No disponible' ?></p>
+                <?php if (!empty($diagCompleto['alertas'])): ?>
+                    <ul>
+                        <?php foreach ($diagCompleto['alertas'] as $alerta): ?>
+                            <li><?= htmlspecialchars((string) $alerta) ?></li>
+                        <?php endforeach; ?>
+                    </ul>
+                <?php else: ?>
+                    <p>Sin alertas detectadas.</p>
+                <?php endif; ?>
+            </div>
+        <?php endif; ?>
         <p style="margin-top:8px;font-size:0.9rem;opacity:.85;">
             Remitente activo: <code><?= htmlspecialchars((string) ($remitenteActual['correo'] ?: 'sin definir')) ?></code>
         </p>
