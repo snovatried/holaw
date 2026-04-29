@@ -1,6 +1,6 @@
 .ui-tools {
     position: fixed;
-    top: 14px;
+    bottom: 14px;
     right: 14px;
     z-index: 1000;
     display: flex;
@@ -173,6 +173,6 @@
     .ui-tools {
         left: 12px;
         right: 12px;
-        top: 10px;
+        bottom: 10px;
     }
 }
