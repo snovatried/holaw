@@ -131,7 +131,7 @@ $logoDisponible = file_exists(__DIR__ . '/../assets/img/logo.png');
     <link rel="stylesheet" href="../assets/css/general.css?v=<?= urlencode((string) @filemtime(__DIR__ . '/../assets/css/general.css')) ?>">
     <link rel="stylesheet" href="../assets/css/dashboard.css?v=<?= urlencode((string) @filemtime(__DIR__ . '/../assets/css/dashboard.css')) ?>">
 </head>
-<body class="dark-fixed">
+<body>
 <div class="container">
     <div class="topbar card">
         <div class="topbar-main">
@@ -148,6 +148,8 @@ $logoDisponible = file_exists(__DIR__ . '/../assets/img/logo.png');
             </div>
         </div>
         <div class="topbar-actions">
+            <button type="button" class="btn btn-secondary" id="modo-claro">Modo claro</button>
+            <button type="button" class="btn btn-secondary" id="modo-oscuro">Modo oscuro</button>
             <a class="btn btn-secondary" href="../auth/logout.php">Cerrar sesión</a>
         </div>
     </div>
@@ -209,6 +211,32 @@ $logoDisponible = file_exists(__DIR__ . '/../assets/img/logo.png');
         </section>
     <?php endif; ?>
 </div>
+<script>
+(() => {
+    const body = document.body;
+    const btnClaro = document.getElementById('modo-claro');
+    const btnOscuro = document.getElementById('modo-oscuro');
+    const key = 'dispensador_tema';
 
+    function aplicarTema(modo) {
+        body.classList.remove('theme-light', 'theme-dark');
+        if (modo === 'oscuro') {
+            body.classList.add('theme-dark');
+            localStorage.setItem(key, 'oscuro');
+        } else {
+            body.classList.add('theme-light');
+            localStorage.setItem(key, 'claro');
+        }
+    }
+
+    const temaGuardado = localStorage.getItem(key);
+    if (temaGuardado === 'oscuro' || temaGuardado === 'claro') {
+        aplicarTema(temaGuardado);
+    }
+
+    btnClaro?.addEventListener('click', () => aplicarTema('claro'));
+    btnOscuro?.addEventListener('click', () => aplicarTema('oscuro'));
+})();
+</script>
 </body>
 </html>
