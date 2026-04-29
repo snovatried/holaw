@@ -223,6 +223,17 @@ $logoDisponible = file_exists(__DIR__ . '/../assets/img/logo.png');
 <script>
 (() => {
     const body = document.body;
+    const legacyTema = Array.from(document.querySelectorAll('span, p, div'))
+        .find((el) => (el.textContent || '').trim().startsWith('Tema actual:'));
+    if (legacyTema) {
+        legacyTema.remove();
+    }
+    const switchers = document.querySelectorAll('.theme-switcher');
+    if (switchers.length > 1) {
+        switchers.forEach((el, idx) => {
+            if (idx > 0) el.remove();
+        });
+    }
     const btnTema = document.getElementById('modo-tema');
     const btnDislexia = document.getElementById('modo-dislexia');
     const key = 'dispensador_tema';
