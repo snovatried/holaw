@@ -33,6 +33,6 @@ $showError = isset($_GET['error']);
         </section>
     </main>
     <script src="assets/js/validaciones.js"></script>
-<script src="assets/js/ui_prefs.js?v=1"></script>
+<script src="assets/js/ui_prefs.js?v=3"></script>
 </body>
 </html>

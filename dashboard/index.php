@@ -214,13 +214,7 @@ $logoDisponible = file_exists(__DIR__ . '/../assets/img/logo.png');
         </section>
     <?php endif; ?>
 </div>
-<script src="../assets/js/ui_prefs.js?v=2"></script>
+<script src="../assets/js/ui_prefs.js?v=3"></script>
 
-    btnDislexia?.addEventListener('click', () => {
-        aplicarModoDislexia(!body.classList.contains('dyslexia-mode'));
-    });
-})();
-</script>
-<script src="../assets/js/ui_prefs.js?v=1"></script>
 </body>
 </html>

@@ -8,6 +8,20 @@
   const get = (k) => { try { return window.localStorage.getItem(k); } catch (_) { return null; } };
   const set = (k, v) => { try { window.localStorage.setItem(k, v); } catch (_) {} };
 
+  // Limpia controles legado (claro/oscuro + etiqueta "Tema actual") si existen.
+  const legacyLight = document.getElementById('modo-claro');
+  const legacyDark = document.getElementById('modo-oscuro');
+  if (legacyLight && legacyDark) {
+    const wrapper = legacyLight.closest('.theme-switcher') || legacyLight.parentElement;
+    if (wrapper) wrapper.remove();
+    legacyDark.remove();
+  }
+  const legacyLabel = Array.from(document.querySelectorAll('span, p, div'))
+    .find((el) => (el.textContent || '').trim().startsWith('Tema actual:'));
+  if (legacyLabel) {
+    legacyLabel.remove();
+  }
+
   if (!document.querySelector('.ui-tools')) {
     const panel = document.createElement('aside');
     panel.className = 'ui-tools';
