@@ -14,9 +14,20 @@ function textoLower(string $texto): string
         return '';
     }
 
-    return function_exists('mb_strtolower')
-        ? mb_strtolower($texto, 'UTF-8')
-        : strtolower($texto);
+    if (function_exists('mb_strtolower')) {
+        return mb_strtolower($texto, 'UTF-8');
+    }
+
+    // Fallback UTF-8 sin mbstring: cubre acentos y Ñ para reglas de detección.
+    $map = [
+        'Á' => 'á', 'É' => 'é', 'Í' => 'í', 'Ó' => 'ó', 'Ú' => 'ú',
+        'À' => 'à', 'È' => 'è', 'Ì' => 'ì', 'Ò' => 'ò', 'Ù' => 'ù',
+        'Ä' => 'ä', 'Ë' => 'ë', 'Ï' => 'ï', 'Ö' => 'ö', 'Ü' => 'ü',
+        'Â' => 'â', 'Ê' => 'ê', 'Î' => 'î', 'Ô' => 'ô', 'Û' => 'û',
+        'Ã' => 'ã', 'Õ' => 'õ', 'Ñ' => 'ñ', 'Ç' => 'ç',
+    ];
+
+    return strtr(strtolower($texto), $map);
 }
 
 function esFormaComestible(string $tipo): bool
