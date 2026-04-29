@@ -134,11 +134,9 @@ $logoDisponible = file_exists(__DIR__ . '/../assets/img/logo.png');
 <body>
 <aside class="ui-tools" aria-label="Herramientas visuales">
     <div class="theme-switcher" role="group" aria-label="Selector de tema">
-        <button type="button" class="theme-btn" id="modo-claro" data-theme="claro" aria-pressed="false">☀️ Claro</button>
-        <button type="button" class="theme-btn" id="modo-oscuro" data-theme="oscuro" aria-pressed="false">🌙 Oscuro</button>
+        <button type="button" class="theme-btn" id="modo-tema" data-theme="claro" aria-pressed="false">🌓 Cambiar tema</button>
     </div>
     <button type="button" class="theme-btn dyslexia-btn" id="modo-dislexia" aria-pressed="false">🅰️ Modo dislexia</button>
-    <span id="tema-actual" class="theme-label" aria-live="polite">Tema actual: automático</span>
 </aside>
 <div class="container">
     <div class="topbar card">
@@ -225,8 +223,7 @@ $logoDisponible = file_exists(__DIR__ . '/../assets/img/logo.png');
 <script>
 (() => {
     const body = document.body;
-    const btnClaro = document.getElementById('modo-claro');
-    const btnOscuro = document.getElementById('modo-oscuro');
+    const btnTema = document.getElementById('modo-tema');
     const btnDislexia = document.getElementById('modo-dislexia');
     const key = 'dispensador_tema';
     const keyDislexia = 'dispensador_dislexia';
@@ -256,15 +253,9 @@ $logoDisponible = file_exists(__DIR__ . '/../assets/img/logo.png');
             body.classList.add('theme-light');
             almacenamiento.set(key, 'claro');
         }
-        const temaActual = document.getElementById('tema-actual');
-        if (temaActual) {
-            temaActual.textContent = `Tema actual: ${modo}`;
-        }
-        if (btnClaro && btnOscuro) {
-            btnClaro.classList.toggle('is-active', modo === 'claro');
-            btnOscuro.classList.toggle('is-active', modo === 'oscuro');
-            btnClaro.setAttribute('aria-pressed', modo === 'claro' ? 'true' : 'false');
-            btnOscuro.setAttribute('aria-pressed', modo === 'oscuro' ? 'true' : 'false');
+        if (btnTema) {
+            btnTema.classList.toggle('is-active', modo === 'oscuro');
+            btnTema.setAttribute('aria-pressed', modo === 'oscuro' ? 'true' : 'false');
         }
     }
 
@@ -275,8 +266,10 @@ $logoDisponible = file_exists(__DIR__ . '/../assets/img/logo.png');
         aplicarTema('oscuro');
     }
 
-    btnClaro?.addEventListener('click', () => aplicarTema('claro'));
-    btnOscuro?.addEventListener('click', () => aplicarTema('oscuro'));
+    btnTema?.addEventListener('click', () => {
+        const actual = body.classList.contains('theme-dark') ? 'oscuro' : 'claro';
+        aplicarTema(actual === 'oscuro' ? 'claro' : 'oscuro');
+    });
 
     function aplicarModoDislexia(activo) {
         body.classList.toggle('dyslexia-mode', activo);
@@ -295,5 +288,6 @@ $logoDisponible = file_exists(__DIR__ . '/../assets/img/logo.png');
     });
 })();
 </script>
+<script src="../assets/js/ui_prefs.js?v=1"></script>
 </body>
 </html>

@@ -59,11 +59,6 @@
     color: #fff;
 }
 
-.theme-label {
-    font-size: 0.82rem;
-    color: var(--muted);
-}
-
 .dyslexia-btn {
     border: 1px solid var(--border);
 }
