@@ -131,5 +131,6 @@ formMedicamento.addEventListener('submit', (e) => {
 
 cargarMedicamentos();
 </script>
+<script src="../assets/js/ui_prefs.js?v=1"></script>
 </body>
 </html>
