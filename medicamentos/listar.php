@@ -70,5 +70,6 @@ $showSuccess = isset($_GET['ok']);
         </tbody>
     </table>
 </div>
+<script src="../assets/js/ui_prefs.js?v=3"></script>
 </body>
 </html>
