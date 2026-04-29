@@ -132,6 +132,14 @@ $logoDisponible = file_exists(__DIR__ . '/../assets/img/logo.png');
     <link rel="stylesheet" href="../assets/css/dashboard.css?v=<?= urlencode((string) @filemtime(__DIR__ . '/../assets/css/dashboard.css')) ?>">
 </head>
 <body>
+<aside class="ui-tools" aria-label="Herramientas visuales">
+    <div class="theme-switcher" role="group" aria-label="Selector de tema">
+        <button type="button" class="theme-btn" id="modo-claro" data-theme="claro" aria-pressed="false">☀️ Claro</button>
+        <button type="button" class="theme-btn" id="modo-oscuro" data-theme="oscuro" aria-pressed="false">🌙 Oscuro</button>
+    </div>
+    <button type="button" class="theme-btn dyslexia-btn" id="modo-dislexia" aria-pressed="false">🅰️ Modo dislexia</button>
+    <span id="tema-actual" class="theme-label" aria-live="polite">Tema actual: automático</span>
+</aside>
 <div class="container">
     <div class="topbar card">
         <div class="topbar-main">
@@ -219,18 +227,20 @@ $logoDisponible = file_exists(__DIR__ . '/../assets/img/logo.png');
     const body = document.body;
     const btnClaro = document.getElementById('modo-claro');
     const btnOscuro = document.getElementById('modo-oscuro');
+    const btnDislexia = document.getElementById('modo-dislexia');
     const key = 'dispensador_tema';
+    const keyDislexia = 'dispensador_dislexia';
     const almacenamiento = {
-        get() {
+        get(storageKey = key) {
             try {
-                return window.localStorage.getItem(key);
+                return window.localStorage.getItem(storageKey);
             } catch (e) {
                 return null;
             }
         },
-        set(valor) {
+        set(storageKey, valor) {
             try {
-                window.localStorage.setItem(key, valor);
+                window.localStorage.setItem(storageKey, valor);
             } catch (e) {
                 // Ignorar entornos donde localStorage esté bloqueado.
             }
@@ -241,10 +251,10 @@ $logoDisponible = file_exists(__DIR__ . '/../assets/img/logo.png');
         body.classList.remove('theme-light', 'theme-dark');
         if (modo === 'oscuro') {
             body.classList.add('theme-dark');
-            almacenamiento.set('oscuro');
+            almacenamiento.set(key, 'oscuro');
         } else {
             body.classList.add('theme-light');
-            almacenamiento.set('claro');
+            almacenamiento.set(key, 'claro');
         }
         const temaActual = document.getElementById('tema-actual');
         if (temaActual) {
@@ -258,7 +268,7 @@ $logoDisponible = file_exists(__DIR__ . '/../assets/img/logo.png');
         }
     }
 
-    const temaGuardado = almacenamiento.get();
+    const temaGuardado = almacenamiento.get(key);
     if (temaGuardado === 'oscuro' || temaGuardado === 'claro') {
         aplicarTema(temaGuardado);
     } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
@@ -267,6 +277,22 @@ $logoDisponible = file_exists(__DIR__ . '/../assets/img/logo.png');
 
     btnClaro?.addEventListener('click', () => aplicarTema('claro'));
     btnOscuro?.addEventListener('click', () => aplicarTema('oscuro'));
+
+    function aplicarModoDislexia(activo) {
+        body.classList.toggle('dyslexia-mode', activo);
+        btnDislexia?.classList.toggle('is-active', activo);
+        btnDislexia?.setAttribute('aria-pressed', activo ? 'true' : 'false');
+        almacenamiento.set(keyDislexia, activo ? '1' : '0');
+    }
+
+    const dislexiaGuardado = almacenamiento.get(keyDislexia);
+    if (dislexiaGuardado === '1') {
+        aplicarModoDislexia(true);
+    }
+
+    btnDislexia?.addEventListener('click', () => {
+        aplicarModoDislexia(!body.classList.contains('dyslexia-mode'));
+    });
 })();
 </script>
 </body>
