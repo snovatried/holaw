@@ -156,6 +156,11 @@ $logoDisponible = file_exists(__DIR__ . '/../assets/img/logo.png');
             </div>
         </div>
         <div class="topbar-actions">
+            <div class="theme-switcher" role="group" aria-label="Selector de tema">
+                <button type="button" class="theme-btn" id="modo-claro" data-theme="claro" aria-pressed="false">☀️ Claro</button>
+                <button type="button" class="theme-btn" id="modo-oscuro" data-theme="oscuro" aria-pressed="false">🌙 Oscuro</button>
+            </div>
+            <span id="tema-actual" class="theme-label" aria-live="polite">Tema actual: automático</span>
             <a class="btn btn-secondary" href="../auth/logout.php">Cerrar sesión</a>
         </div>
     </div>
