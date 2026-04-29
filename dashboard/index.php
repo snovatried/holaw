@@ -131,7 +131,7 @@ $logoDisponible = file_exists(__DIR__ . '/../assets/img/logo.png');
     <link rel="stylesheet" href="../assets/css/general.css?v=<?= urlencode((string) @filemtime(__DIR__ . '/../assets/css/general.css')) ?>">
     <link rel="stylesheet" href="../assets/css/dashboard.css?v=<?= urlencode((string) @filemtime(__DIR__ . '/../assets/css/dashboard.css')) ?>">
 </head>
-<body class="dark-fixed">
+<body>
 <div class="container">
     <div class="topbar card">
         <div class="topbar-main">
@@ -148,6 +148,11 @@ $logoDisponible = file_exists(__DIR__ . '/../assets/img/logo.png');
             </div>
         </div>
         <div class="topbar-actions">
+            <div class="theme-switcher" role="group" aria-label="Selector de tema">
+                <button type="button" class="theme-btn" id="modo-claro" data-theme="claro" aria-pressed="false">☀️ Claro</button>
+                <button type="button" class="theme-btn" id="modo-oscuro" data-theme="oscuro" aria-pressed="false">🌙 Oscuro</button>
+            </div>
+            <span id="tema-actual" class="theme-label" aria-live="polite">Tema actual: automático</span>
             <a class="btn btn-secondary" href="../auth/logout.php">Cerrar sesión</a>
         </div>
     </div>
@@ -209,6 +214,60 @@ $logoDisponible = file_exists(__DIR__ . '/../assets/img/logo.png');
         </section>
     <?php endif; ?>
 </div>
+<script>
+(() => {
+    const body = document.body;
+    const btnClaro = document.getElementById('modo-claro');
+    const btnOscuro = document.getElementById('modo-oscuro');
+    const key = 'dispensador_tema';
+    const almacenamiento = {
+        get() {
+            try {
+                return window.localStorage.getItem(key);
+            } catch (e) {
+                return null;
+            }
+        },
+        set(valor) {
+            try {
+                window.localStorage.setItem(key, valor);
+            } catch (e) {
+                // Ignorar entornos donde localStorage esté bloqueado.
+            }
+        }
+    };
 
+    function aplicarTema(modo) {
+        body.classList.remove('theme-light', 'theme-dark');
+        if (modo === 'oscuro') {
+            body.classList.add('theme-dark');
+            almacenamiento.set('oscuro');
+        } else {
+            body.classList.add('theme-light');
+            almacenamiento.set('claro');
+        }
+        const temaActual = document.getElementById('tema-actual');
+        if (temaActual) {
+            temaActual.textContent = `Tema actual: ${modo}`;
+        }
+        if (btnClaro && btnOscuro) {
+            btnClaro.classList.toggle('is-active', modo === 'claro');
+            btnOscuro.classList.toggle('is-active', modo === 'oscuro');
+            btnClaro.setAttribute('aria-pressed', modo === 'claro' ? 'true' : 'false');
+            btnOscuro.setAttribute('aria-pressed', modo === 'oscuro' ? 'true' : 'false');
+        }
+    }
+
+    const temaGuardado = almacenamiento.get();
+    if (temaGuardado === 'oscuro' || temaGuardado === 'claro') {
+        aplicarTema(temaGuardado);
+    } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        aplicarTema('oscuro');
+    }
+
+    btnClaro?.addEventListener('click', () => aplicarTema('claro'));
+    btnOscuro?.addEventListener('click', () => aplicarTema('oscuro'));
+})();
+</script>
 </body>
 </html>

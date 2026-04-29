@@ -18,6 +18,34 @@
     gap: 10px;
 }
 
+.theme-switcher {
+    display: inline-flex;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 3px;
+    background: var(--surface-soft);
+}
+
+.theme-btn {
+    border: 0;
+    background: transparent;
+    color: var(--muted);
+    padding: 7px 12px;
+    border-radius: 999px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.theme-btn.is-active {
+    background: var(--primary);
+    color: #fff;
+}
+
+.theme-label {
+    font-size: 0.82rem;
+    color: var(--muted);
+}
+
 .brand-slot {
     width: 60px;
     height: 60px;
