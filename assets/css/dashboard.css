@@ -1,3 +1,21 @@
+.ui-tools {
+    position: fixed;
+    top: 14px;
+    right: 14px;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    max-width: min(95vw, 560px);
+    background: color-mix(in srgb, var(--surface) 82%, transparent);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 8px 10px;
+    box-shadow: 0 8px 20px var(--shadow);
+    backdrop-filter: blur(4px);
+}
+
 .topbar {
     display: flex;
     justify-content: space-between;
@@ -16,6 +34,33 @@
     display: flex;
     align-items: center;
     gap: 10px;
+}
+
+.theme-switcher {
+    display: inline-flex;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 3px;
+    background: var(--surface-soft);
+}
+
+.theme-btn {
+    border: 0;
+    background: transparent;
+    color: var(--muted);
+    padding: 7px 12px;
+    border-radius: 999px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.theme-btn.is-active {
+    background: var(--primary);
+    color: #fff;
+}
+
+.dyslexia-btn {
+    border: 1px solid var(--border);
 }
 
 .brand-slot {
@@ -123,5 +168,11 @@
         width: 100%;
         justify-content: flex-start;
         flex-wrap: wrap;
+    }
+
+    .ui-tools {
+        left: 12px;
+        right: 12px;
+        top: 10px;
     }
 }

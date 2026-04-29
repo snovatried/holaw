@@ -7,9 +7,32 @@ $resourceRows = 200;
 $maxPages = 5;
 $maxMedicamentos = 300;
 
+function textoLower(string $texto): string
+{
+    $texto = trim($texto);
+    if ($texto === '') {
+        return '';
+    }
+
+    if (function_exists('mb_strtolower')) {
+        return mb_strtolower($texto, 'UTF-8');
+    }
+
+    // Fallback UTF-8 sin mbstring: cubre acentos y Ñ para reglas de detección.
+    $map = [
+        'Á' => 'á', 'É' => 'é', 'Í' => 'í', 'Ó' => 'ó', 'Ú' => 'ú',
+        'À' => 'à', 'È' => 'è', 'Ì' => 'ì', 'Ò' => 'ò', 'Ù' => 'ù',
+        'Ä' => 'ä', 'Ë' => 'ë', 'Ï' => 'ï', 'Ö' => 'ö', 'Ü' => 'ü',
+        'Â' => 'â', 'Ê' => 'ê', 'Î' => 'î', 'Ô' => 'ô', 'Û' => 'û',
+        'Ã' => 'ã', 'Õ' => 'õ', 'Ñ' => 'ñ', 'Ç' => 'ç',
+    ];
+
+    return strtr(strtolower($texto), $map);
+}
+
 function esFormaComestible(string $tipo): bool
 {
-    $tipoLower = mb_strtolower(trim($tipo), 'UTF-8');
+    $tipoLower = textoLower($tipo);
     if ($tipoLower === '') {
         return false;
     }
@@ -43,7 +66,7 @@ function esFormaComestible(string $tipo): bool
 
 function esFormaExcluida(string $tipo): bool
 {
-    $tipoLower = mb_strtolower(trim($tipo), 'UTF-8');
+    $tipoLower = textoLower($tipo);
     if ($tipoLower === '') {
         return true;
     }
@@ -86,7 +109,7 @@ function esFormaExcluida(string $tipo): bool
 
 function normalizarClave(string $texto): string
 {
-    $texto = mb_strtolower(trim($texto), 'UTF-8');
+    $texto = textoLower($texto);
     return preg_replace('/\s+/', '_', $texto) ?? '';
 }
 
@@ -114,7 +137,7 @@ function buscarCampo(array $item, array $aliases): string
 
 function extraerTipoDesdeTexto(string $texto): string
 {
-    $textoLower = mb_strtolower($texto, 'UTF-8');
+    $textoLower = textoLower($texto);
 
     $mapa = [
         'sólido oral' => ['sólido oral', 'solido oral'],
@@ -164,9 +187,9 @@ $resourceId = '';
 $results = $searchData['result']['results'] ?? [];
 foreach ($results as $dataset) {
     foreach (($dataset['resources'] ?? []) as $resource) {
-        $resourceFormat = mb_strtolower(trim((string) ($resource['format'] ?? '')), 'UTF-8');
-        $name = mb_strtolower(trim((string) ($resource['name'] ?? '')), 'UTF-8');
-        $desc = mb_strtolower(trim((string) ($resource['description'] ?? '')), 'UTF-8');
+        $resourceFormat = textoLower((string) ($resource['format'] ?? ''));
+        $name = textoLower((string) ($resource['name'] ?? ''));
+        $desc = textoLower((string) ($resource['description'] ?? ''));
 
         if (!($resource['datastore_active'] ?? false)) {
             continue;
@@ -174,7 +197,7 @@ foreach ($results as $dataset) {
 
         $esMedicamentos = str_contains($name, 'medicamento')
             || str_contains($desc, 'medicamento')
-            || str_contains(mb_strtolower((string) ($dataset['title'] ?? ''), 'UTF-8'), 'medicamento');
+            || str_contains(textoLower((string) ($dataset['title'] ?? '')), 'medicamento');
 
         if (!$esMedicamentos) {
             continue;
@@ -269,7 +292,7 @@ for ($page = 0; $page < $maxPages; $page++) {
             continue;
         }
 
-        $key = mb_strtolower($nombre . '|' . $tipo . '|' . $dosis, 'UTF-8');
+        $key = textoLower($nombre . '|' . $tipo . '|' . $dosis);
         if (isset($seen[$key])) {
             continue;
         }
