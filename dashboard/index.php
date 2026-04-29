@@ -131,7 +131,7 @@ $logoDisponible = file_exists(__DIR__ . '/../assets/img/logo.png');
     <link rel="stylesheet" href="../assets/css/general.css?v=<?= urlencode((string) @filemtime(__DIR__ . '/../assets/css/general.css')) ?>">
     <link rel="stylesheet" href="../assets/css/dashboard.css?v=<?= urlencode((string) @filemtime(__DIR__ . '/../assets/css/dashboard.css')) ?>">
 </head>
-<body class="dark-fixed">
+<body>
 <div class="container">
     <div class="topbar card">
         <div class="topbar-main">
@@ -209,6 +209,7 @@ $logoDisponible = file_exists(__DIR__ . '/../assets/img/logo.png');
         </section>
     <?php endif; ?>
 </div>
+<script src="../assets/js/ui_prefs.js?v=2"></script>
 
 </body>
 </html>
