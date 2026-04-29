@@ -115,5 +115,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </form>
     </section>
 </main>
+<script src="../assets/js/ui_prefs.js?v=4"></script>
 </body>
 </html>
