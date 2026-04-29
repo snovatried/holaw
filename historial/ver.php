@@ -162,6 +162,6 @@ if ($rol === 'admin') {
         </tbody>
     </table>
 </div>
-<script src="../assets/js/ui_prefs.js?v=3"></script>
+<script src="../assets/js/ui_prefs.js?v=4"></script>
 </body>
 </html>

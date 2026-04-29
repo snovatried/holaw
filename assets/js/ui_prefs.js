@@ -12,9 +12,13 @@
   const legacyLight = document.getElementById('modo-claro');
   const legacyDark = document.getElementById('modo-oscuro');
   if (legacyLight && legacyDark) {
-    const wrapper = legacyLight.closest('.theme-switcher') || legacyLight.parentElement;
-    if (wrapper) wrapper.remove();
-    legacyDark.remove();
+    const wrapper = legacyLight.closest('.theme-switcher');
+    if (wrapper) {
+      wrapper.remove();
+    } else {
+      legacyLight.remove();
+      legacyDark.remove();
+    }
   }
   const legacyLabel = Array.from(document.querySelectorAll('span, p, div'))
     .find((el) => (el.textContent || '').trim().startsWith('Tema actual:'));
