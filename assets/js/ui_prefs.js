@@ -25,6 +25,11 @@
   if (legacyLabel) {
     legacyLabel.remove();
   }
+  // Elimina cualquier control legacy visible dentro de topbar/actions.
+  document.querySelectorAll('.topbar-actions .theme-switcher, .topbar .theme-switcher').forEach((el) => el.remove());
+  Array.from(document.querySelectorAll('.topbar-actions *, .topbar *'))
+    .filter((el) => ['claro', 'oscuro'].includes((el.textContent || '').trim().toLowerCase()))
+    .forEach((el) => el.remove());
 
   if (!document.querySelector('.ui-tools')) {
     const panel = document.createElement('aside');

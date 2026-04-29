@@ -59,6 +59,12 @@
     color: #fff;
 }
 
+#modo-claro,
+#modo-oscuro,
+.topbar .theme-switcher + span {
+    display: none !important;
+}
+
 .dyslexia-btn {
     border: 1px solid var(--border);
 }
