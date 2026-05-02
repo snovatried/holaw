@@ -122,6 +122,14 @@ function normalizarClave(string $texto): string
     return preg_replace('/\s+/', '_', $texto) ?? '';
 }
 
+function normalizarNombreMedicamento(string $texto): string
+{
+    $texto = textoLower($texto);
+    $texto = preg_replace('/[^a-z0-9áéíóúñ\s]/u', ' ', $texto) ?? '';
+    $texto = preg_replace('/\s+/', ' ', trim($texto)) ?? '';
+    return $texto;
+}
+
 function buscarCampo(array $item, array $aliases): string
 {
     $index = [];
@@ -241,7 +249,7 @@ function obtenerCatalogoEcuador(string $apiCkanBase, int $maxItems = 2000): arra
             if ($nombre === '') {
                 continue;
             }
-            $nombres[textoLower($nombre)] = true;
+            $nombres[normalizarNombreMedicamento($nombre)] = true;
             if (count($nombres) >= $maxItems) {
                 break 2;
             }
@@ -252,6 +260,7 @@ function obtenerCatalogoEcuador(string $apiCkanBase, int $maxItems = 2000): arra
 }
 
 $catalogoEcuador = $soloEcuador ? obtenerCatalogoEcuador($apiCkanBase) : [];
+$catalogoEcuadorDisponible = count($catalogoEcuador) > 0;
 
 $medicamentos = [];
 $seen = [];
@@ -302,10 +311,24 @@ for ($page = 0; $page < $maxPages; $page++) {
             continue;
         }
 
-        if ($soloEcuador) {
-            $nombreLower = textoLower($nombre);
-            $genericLower = textoLower(buscarCampo($item, ['generic_name', 'substance_name']));
-            if (!isset($catalogoEcuador[$nombreLower]) && ($genericLower === '' || !isset($catalogoEcuador[$genericLower]))) {
+        if ($soloEcuador && $catalogoEcuadorDisponible) {
+            $nombreNorm = normalizarNombreMedicamento($nombre);
+            $genericNorm = normalizarNombreMedicamento(buscarCampo($item, ['generic_name', 'substance_name']));
+            $coincide = isset($catalogoEcuador[$nombreNorm]) || ($genericNorm !== '' && isset($catalogoEcuador[$genericNorm]));
+
+            if (!$coincide) {
+                foreach ($catalogoEcuador as $catalogoNombre => $_) {
+                    if (($nombreNorm !== '' && str_contains($catalogoNombre, $nombreNorm))
+                        || ($genericNorm !== '' && str_contains($catalogoNombre, $genericNorm))
+                        || ($nombreNorm !== '' && str_contains($nombreNorm, $catalogoNombre))
+                        || ($genericNorm !== '' && str_contains($genericNorm, $catalogoNombre))) {
+                        $coincide = true;
+                        break;
+                    }
+                }
+            }
+
+            if (!$coincide) {
                 continue;
             }
         }
@@ -345,7 +368,7 @@ for ($page = 0; $page < $maxPages; $page++) {
 }
 
 echo json_encode([
-    'origen' => $soloEcuador ? 'openFDA (NDC) filtrado con ARCSA Ecuador' : 'openFDA (NDC)',
+    'origen' => ($soloEcuador && $catalogoEcuadorDisponible) ? 'openFDA (NDC) filtrado con ARCSA Ecuador' : 'openFDA (NDC)',
     'total' => count($medicamentos),
     'medicamentos' => array_values($medicamentos),
 ]);
