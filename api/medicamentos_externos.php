@@ -1,11 +1,12 @@
 <?php
 header('Content-Type: application/json');
 
+$apiFdaBase = 'https://api.fda.gov/drug/ndc.json';
 $apiCkanBase = 'https://datosabiertos.gob.ec/api/3/action';
-$searchQuery = 'medicamentos arcsa';
-$resourceRows = 200;
-$maxPages = 5;
+$apiLimit = 200;
+$maxPages = 3;
 $maxMedicamentos = 300;
+$soloEcuador = !isset($_GET['solo_ecuador']) || $_GET['solo_ecuador'] !== '0';
 
 $fallbackMedicamentos = [
     ['nombre' => 'Paracetamol', 'tipo' => 'tablet', 'dosis' => '500 mg'],
@@ -121,6 +122,14 @@ function normalizarClave(string $texto): string
     return preg_replace('/\s+/', '_', $texto) ?? '';
 }
 
+function normalizarNombreMedicamento(string $texto): string
+{
+    $texto = textoLower($texto);
+    $texto = preg_replace('/[^a-z0-9áéíóúñ\s]/u', ' ', $texto) ?? '';
+    $texto = preg_replace('/\s+/', ' ', trim($texto)) ?? '';
+    return $texto;
+}
+
 function buscarCampo(array $item, array $aliases): string
 {
     $index = [];
@@ -183,84 +192,100 @@ function obtenerJson(string $url): ?array
     return is_array($data) ? $data : null;
 }
 
-$searchUrl = $apiCkanBase . '/package_search?q=' . urlencode($searchQuery) . '&rows=8';
-$searchData = obtenerJson($searchUrl);
-if (!$searchData || !($searchData['success'] ?? false)) {
-    echo json_encode([
-        'origen' => 'Fallback local (API externa no disponible)',
-        'total' => count($fallbackMedicamentos),
-        'medicamentos' => $fallbackMedicamentos,
-        'warning' => 'No se pudo consultar la API externa de medicamentos de Ecuador',
-    ]);
-    exit;
-}
+function obtenerCatalogoEcuador(string $apiCkanBase, int $maxItems = 2000): array
+{
+    $searchUrl = $apiCkanBase . '/package_search?q=' . urlencode('medicamentos arcsa') . '&rows=8';
+    $searchData = obtenerJson($searchUrl);
+    if (!$searchData || !($searchData['success'] ?? false)) {
+        return [];
+    }
 
-$resourceId = '';
-$results = $searchData['result']['results'] ?? [];
-foreach ($results as $dataset) {
-    foreach (($dataset['resources'] ?? []) as $resource) {
-        $resourceFormat = textoLower((string) ($resource['format'] ?? ''));
-        $name = textoLower((string) ($resource['name'] ?? ''));
-        $desc = textoLower((string) ($resource['description'] ?? ''));
+    $resourceId = '';
+    $results = $searchData['result']['results'] ?? [];
+    foreach ($results as $dataset) {
+        foreach (($dataset['resources'] ?? []) as $resource) {
+            if (!($resource['datastore_active'] ?? false)) {
+                continue;
+            }
 
-        if (!($resource['datastore_active'] ?? false)) {
-            continue;
-        }
-
-        $esMedicamentos = str_contains($name, 'medicamento')
-            || str_contains($desc, 'medicamento')
-            || str_contains(textoLower((string) ($dataset['title'] ?? '')), 'medicamento');
-
-        if (!$esMedicamentos) {
-            continue;
-        }
-
-        if (!in_array($resourceFormat, ['csv', 'xlsx', 'json', 'ods'], true)) {
-            continue;
-        }
-
-        $resourceId = trim((string) ($resource['id'] ?? ''));
-        if ($resourceId !== '') {
-            break 2;
+            $resourceId = trim((string) ($resource['id'] ?? ''));
+            if ($resourceId !== '') {
+                break 2;
+            }
         }
     }
+
+    if ($resourceId === '') {
+        return [];
+    }
+
+    $nombres = [];
+    $limit = 200;
+    for ($page = 0; $page < 5; $page++) {
+        $offset = $page * $limit;
+        $url = $apiCkanBase . '/datastore_search?resource_id=' . urlencode($resourceId) . '&limit=' . $limit . '&offset=' . $offset;
+        $data = obtenerJson($url);
+        if (!$data || !($data['success'] ?? false)) {
+            break;
+        }
+
+        $rows = $data['result']['records'] ?? [];
+        if (!is_array($rows) || count($rows) === 0) {
+            break;
+        }
+
+        foreach ($rows as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+            $nombre = buscarCampo($item, [
+                'nombre_medicamento',
+                'nombre_del_medicamento',
+                'medicamento',
+                'nombre_comercial',
+                'principio_activo',
+                'dci',
+            ]);
+            if ($nombre === '') {
+                continue;
+            }
+            $nombres[normalizarNombreMedicamento($nombre)] = true;
+            if (count($nombres) >= $maxItems) {
+                break 2;
+            }
+        }
+    }
+
+    return $nombres;
 }
 
-if ($resourceId === '') {
-    echo json_encode([
-        'origen' => 'Fallback local (catálogo no encontrado)',
-        'total' => count($fallbackMedicamentos),
-        'medicamentos' => $fallbackMedicamentos,
-        'warning' => 'No se encontró un catálogo compatible en la API de Ecuador',
-    ]);
-    exit;
-}
+$catalogoEcuador = $soloEcuador ? obtenerCatalogoEcuador($apiCkanBase) : [];
+$catalogoEcuadorDisponible = count($catalogoEcuador) > 0;
 
 $medicamentos = [];
 $seen = [];
 
 for ($page = 0; $page < $maxPages; $page++) {
-    $offset = $page * $resourceRows;
-    $url = $apiCkanBase
-        . '/datastore_search?resource_id=' . urlencode($resourceId)
-        . '&limit=' . $resourceRows
-        . '&offset=' . $offset;
+    $skip = $page * $apiLimit;
+    $url = $apiFdaBase
+        . '?limit=' . $apiLimit
+        . '&skip=' . $skip;
 
     $data = obtenerJson($url);
-    if (!$data || !($data['success'] ?? false)) {
+    if (!$data || !is_array($data['results'] ?? null)) {
         if ($page === 0) {
             echo json_encode([
                 'origen' => 'Fallback local (lectura de catálogo fallida)',
                 'total' => count($fallbackMedicamentos),
                 'medicamentos' => $fallbackMedicamentos,
-                'warning' => 'No se pudo leer el catálogo de medicamentos de Ecuador',
+                'warning' => 'No se pudo leer el catálogo de medicamentos de openFDA',
             ]);
             exit;
         }
         break;
     }
 
-    $rows = $data['result']['records'] ?? [];
+    $rows = $data['results'] ?? [];
     if (!is_array($rows) || count($rows) === 0) {
         break;
     }
@@ -270,34 +295,42 @@ for ($page = 0; $page < $maxPages; $page++) {
             continue;
         }
 
-        $nombre = buscarCampo($item, [
-            'nombre_medicamento',
-            'nombre_del_medicamento',
-            'medicamento',
-            'nombre_comercial',
-            'principio_activo',
-            'producto',
-            'descripcion',
-            'dci',
-        ]);
+        $nombre = buscarCampo($item, ['brand_name', 'generic_name', 'substance_name']);
 
-        $tipo = buscarCampo($item, [
-            'forma_farmaceutica',
-            'tipo',
-            'presentacion',
-            'via_administracion',
-            'forma',
-        ]);
+        $tipo = buscarCampo($item, ['dosage_form', 'route']);
 
-        $dosis = buscarCampo($item, [
-            'concentracion',
-            'dosis',
-            'dosificacion',
-            'strength',
-        ]);
+        $dosis = buscarCampo($item, ['active_ingredients', 'strength']);
+        if ($dosis !== '' && str_starts_with(trim($dosis), '[')) {
+            $ingredientes = json_decode($dosis, true);
+            if (is_array($ingredientes) && isset($ingredientes[0]['strength'])) {
+                $dosis = (string) $ingredientes[0]['strength'];
+            }
+        }
 
         if ($nombre === '') {
             continue;
+        }
+
+        if ($soloEcuador && $catalogoEcuadorDisponible) {
+            $nombreNorm = normalizarNombreMedicamento($nombre);
+            $genericNorm = normalizarNombreMedicamento(buscarCampo($item, ['generic_name', 'substance_name']));
+            $coincide = isset($catalogoEcuador[$nombreNorm]) || ($genericNorm !== '' && isset($catalogoEcuador[$genericNorm]));
+
+            if (!$coincide) {
+                foreach ($catalogoEcuador as $catalogoNombre => $_) {
+                    if (($nombreNorm !== '' && str_contains($catalogoNombre, $nombreNorm))
+                        || ($genericNorm !== '' && str_contains($catalogoNombre, $genericNorm))
+                        || ($nombreNorm !== '' && str_contains($nombreNorm, $catalogoNombre))
+                        || ($genericNorm !== '' && str_contains($genericNorm, $catalogoNombre))) {
+                        $coincide = true;
+                        break;
+                    }
+                }
+            }
+
+            if (!$coincide) {
+                continue;
+            }
         }
 
         if ($tipo === '') {
@@ -329,13 +362,13 @@ for ($page = 0; $page < $maxPages; $page++) {
         }
     }
 
-    if (count($rows) < $resourceRows) {
+    if (count($rows) < $apiLimit) {
         break;
     }
 }
 
 echo json_encode([
-    'origen' => 'Datos Abiertos Ecuador (ARCSA)',
+    'origen' => ($soloEcuador && $catalogoEcuadorDisponible) ? 'openFDA (NDC) filtrado con ARCSA Ecuador' : 'openFDA (NDC)',
     'total' => count($medicamentos),
     'medicamentos' => array_values($medicamentos),
 ]);
