@@ -7,6 +7,14 @@ $resourceRows = 200;
 $maxPages = 5;
 $maxMedicamentos = 300;
 
+$fallbackMedicamentos = [
+    ['nombre' => 'Paracetamol', 'tipo' => 'tablet', 'dosis' => '500 mg'],
+    ['nombre' => 'Ibuprofeno', 'tipo' => 'tablet', 'dosis' => '400 mg'],
+    ['nombre' => 'Amoxicilina', 'tipo' => 'capsule', 'dosis' => '500 mg'],
+    ['nombre' => 'Loratadina', 'tipo' => 'tablet', 'dosis' => '10 mg'],
+    ['nombre' => 'Omeprazol', 'tipo' => 'capsule', 'dosis' => '20 mg'],
+];
+
 function textoLower(string $texto): string
 {
     $texto = trim($texto);
@@ -178,8 +186,12 @@ function obtenerJson(string $url): ?array
 $searchUrl = $apiCkanBase . '/package_search?q=' . urlencode($searchQuery) . '&rows=8';
 $searchData = obtenerJson($searchUrl);
 if (!$searchData || !($searchData['success'] ?? false)) {
-    http_response_code(502);
-    echo json_encode(['error' => 'No se pudo consultar la API externa de medicamentos de Ecuador']);
+    echo json_encode([
+        'origen' => 'Fallback local (API externa no disponible)',
+        'total' => count($fallbackMedicamentos),
+        'medicamentos' => $fallbackMedicamentos,
+        'warning' => 'No se pudo consultar la API externa de medicamentos de Ecuador',
+    ]);
     exit;
 }
 
@@ -215,8 +227,12 @@ foreach ($results as $dataset) {
 }
 
 if ($resourceId === '') {
-    http_response_code(502);
-    echo json_encode(['error' => 'No se encontró un catálogo compatible en la API de Ecuador']);
+    echo json_encode([
+        'origen' => 'Fallback local (catálogo no encontrado)',
+        'total' => count($fallbackMedicamentos),
+        'medicamentos' => $fallbackMedicamentos,
+        'warning' => 'No se encontró un catálogo compatible en la API de Ecuador',
+    ]);
     exit;
 }
 
@@ -233,8 +249,12 @@ for ($page = 0; $page < $maxPages; $page++) {
     $data = obtenerJson($url);
     if (!$data || !($data['success'] ?? false)) {
         if ($page === 0) {
-            http_response_code(502);
-            echo json_encode(['error' => 'No se pudo leer el catálogo de medicamentos de Ecuador']);
+            echo json_encode([
+                'origen' => 'Fallback local (lectura de catálogo fallida)',
+                'total' => count($fallbackMedicamentos),
+                'medicamentos' => $fallbackMedicamentos,
+                'warning' => 'No se pudo leer el catálogo de medicamentos de Ecuador',
+            ]);
             exit;
         }
         break;
