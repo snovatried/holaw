@@ -24,7 +24,7 @@ Aplicación web en **PHP** para administrar usuarios, medicamentos y programaci�
 - **Base de datos en runtime**: **PostgreSQL** (DSN `pgsql`, compatible con Supabase).
 - **Servidor web**: Apache.
 - **Correo**: `mail()` de PHP (en Docker se enruta a `msmtp`).
-- **Integración externa**: Datos Abiertos Ecuador (ARCSA) para catálogo de medicamentos.
+- **Integración externa**: openFDA (NDC) para catálogo de medicamentos.
 
 ## Stack y arquitectura
 
@@ -32,7 +32,7 @@ Aplicación web en **PHP** para administrar usuarios, medicamentos y programaci�
 - **Base de datos runtime:** PostgreSQL (Supabase).
 - **Servidor web:** Apache (imagen `php:8.2-apache`).
 - **Correo:** `mail()` de PHP + `msmtp` en contenedor.
-- **API externa:** Datos Abiertos Ecuador (ARCSA) para catálogo de medicamentos.
+- **API externa:** openFDA (NDC) para catálogo de medicamentos.
 
 ⚠️ El archivo `dispensador_medicina.sql` es un dump legado de MySQL/MariaDB y se conserva solo como referencia histórica.
 
@@ -56,7 +56,7 @@ Aplicación web en **PHP** para administrar usuarios, medicamentos y programaci�
 - Proyecto en repositorio Git conectado a Render.
 - Base de datos PostgreSQL en Supabase ya vinculada al servicio.
 - Variables de entorno ya configuradas en Render.
-- Salida a internet para `datosabiertos.gob.ec` (API CKAN de Datos Abiertos Ecuador).
+- Salida a internet para `api.fda.gov` (openFDA NDC).
 
 ---
 
@@ -121,7 +121,8 @@ Entrega dispensos activos que coinciden con la hora actual.
 Marca el dispositivo como conectado y actualiza `ultimo_ping`.
 
 ### `GET /api/medicamentos_externos.php`
-Consulta Datos Abiertos Ecuador (ARCSA) y devuelve medicamentos filtrados para el dispensador.
+Consulta openFDA (NDC) y devuelve medicamentos filtrados para el dispensador.
+Por defecto filtra solo medicamentos presentes en catálogo ARCSA Ecuador. Puedes desactivar ese filtro con `?solo_ecuador=0`.
 
 ---
 
@@ -165,9 +166,9 @@ Dockerfile           Imagen base para Render
 - Verifica host/puerto y credenciales.
 - Confirma que la base acepte conexiones desde el servicio.
 
-### No carga catálogo de Ecuador
+### No carga catálogo externo de medicamentos
 - Verifica salida a internet del servicio.
-- Prueba `https://datosabiertos.gob.ec/api/3/action/package_search?q=medicamentos`.
+- Prueba `https://api.fda.gov/drug/ndc.json?limit=1`.
 
 ### No se envían correos
 - Revisa configuración SMTP del servicio.
