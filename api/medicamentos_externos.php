@@ -7,9 +7,40 @@ $resourceRows = 200;
 $maxPages = 5;
 $maxMedicamentos = 300;
 
+$fallbackMedicamentos = [
+    ['nombre' => 'Paracetamol', 'tipo' => 'tablet', 'dosis' => '500 mg'],
+    ['nombre' => 'Ibuprofeno', 'tipo' => 'tablet', 'dosis' => '400 mg'],
+    ['nombre' => 'Amoxicilina', 'tipo' => 'capsule', 'dosis' => '500 mg'],
+    ['nombre' => 'Loratadina', 'tipo' => 'tablet', 'dosis' => '10 mg'],
+    ['nombre' => 'Omeprazol', 'tipo' => 'capsule', 'dosis' => '20 mg'],
+];
+
+function textoLower(string $texto): string
+{
+    $texto = trim($texto);
+    if ($texto === '') {
+        return '';
+    }
+
+    if (function_exists('mb_strtolower')) {
+        return mb_strtolower($texto, 'UTF-8');
+    }
+
+    // Fallback UTF-8 sin mbstring: cubre acentos y Ñ para reglas de detección.
+    $map = [
+        'Á' => 'á', 'É' => 'é', 'Í' => 'í', 'Ó' => 'ó', 'Ú' => 'ú',
+        'À' => 'à', 'È' => 'è', 'Ì' => 'ì', 'Ò' => 'ò', 'Ù' => 'ù',
+        'Ä' => 'ä', 'Ë' => 'ë', 'Ï' => 'ï', 'Ö' => 'ö', 'Ü' => 'ü',
+        'Â' => 'â', 'Ê' => 'ê', 'Î' => 'î', 'Ô' => 'ô', 'Û' => 'û',
+        'Ã' => 'ã', 'Õ' => 'õ', 'Ñ' => 'ñ', 'Ç' => 'ç',
+    ];
+
+    return strtr(strtolower($texto), $map);
+}
+
 function esFormaComestible(string $tipo): bool
 {
-    $tipoLower = mb_strtolower(trim($tipo), 'UTF-8');
+    $tipoLower = textoLower($tipo);
     if ($tipoLower === '') {
         return false;
     }
@@ -43,7 +74,7 @@ function esFormaComestible(string $tipo): bool
 
 function esFormaExcluida(string $tipo): bool
 {
-    $tipoLower = mb_strtolower(trim($tipo), 'UTF-8');
+    $tipoLower = textoLower($tipo);
     if ($tipoLower === '') {
         return true;
     }
@@ -86,7 +117,7 @@ function esFormaExcluida(string $tipo): bool
 
 function normalizarClave(string $texto): string
 {
-    $texto = mb_strtolower(trim($texto), 'UTF-8');
+    $texto = textoLower($texto);
     return preg_replace('/\s+/', '_', $texto) ?? '';
 }
 
@@ -114,7 +145,7 @@ function buscarCampo(array $item, array $aliases): string
 
 function extraerTipoDesdeTexto(string $texto): string
 {
-    $textoLower = mb_strtolower($texto, 'UTF-8');
+    $textoLower = textoLower($texto);
 
     $mapa = [
         'sólido oral' => ['sólido oral', 'solido oral'],
@@ -155,8 +186,12 @@ function obtenerJson(string $url): ?array
 $searchUrl = $apiCkanBase . '/package_search?q=' . urlencode($searchQuery) . '&rows=8';
 $searchData = obtenerJson($searchUrl);
 if (!$searchData || !($searchData['success'] ?? false)) {
-    http_response_code(502);
-    echo json_encode(['error' => 'No se pudo consultar la API externa de medicamentos de Ecuador']);
+    echo json_encode([
+        'origen' => 'Fallback local (API externa no disponible)',
+        'total' => count($fallbackMedicamentos),
+        'medicamentos' => $fallbackMedicamentos,
+        'warning' => 'No se pudo consultar la API externa de medicamentos de Ecuador',
+    ]);
     exit;
 }
 
@@ -164,9 +199,9 @@ $resourceId = '';
 $results = $searchData['result']['results'] ?? [];
 foreach ($results as $dataset) {
     foreach (($dataset['resources'] ?? []) as $resource) {
-        $resourceFormat = mb_strtolower(trim((string) ($resource['format'] ?? '')), 'UTF-8');
-        $name = mb_strtolower(trim((string) ($resource['name'] ?? '')), 'UTF-8');
-        $desc = mb_strtolower(trim((string) ($resource['description'] ?? '')), 'UTF-8');
+        $resourceFormat = textoLower((string) ($resource['format'] ?? ''));
+        $name = textoLower((string) ($resource['name'] ?? ''));
+        $desc = textoLower((string) ($resource['description'] ?? ''));
 
         if (!($resource['datastore_active'] ?? false)) {
             continue;
@@ -174,7 +209,7 @@ foreach ($results as $dataset) {
 
         $esMedicamentos = str_contains($name, 'medicamento')
             || str_contains($desc, 'medicamento')
-            || str_contains(mb_strtolower((string) ($dataset['title'] ?? ''), 'UTF-8'), 'medicamento');
+            || str_contains(textoLower((string) ($dataset['title'] ?? '')), 'medicamento');
 
         if (!$esMedicamentos) {
             continue;
@@ -192,8 +227,12 @@ foreach ($results as $dataset) {
 }
 
 if ($resourceId === '') {
-    http_response_code(502);
-    echo json_encode(['error' => 'No se encontró un catálogo compatible en la API de Ecuador']);
+    echo json_encode([
+        'origen' => 'Fallback local (catálogo no encontrado)',
+        'total' => count($fallbackMedicamentos),
+        'medicamentos' => $fallbackMedicamentos,
+        'warning' => 'No se encontró un catálogo compatible en la API de Ecuador',
+    ]);
     exit;
 }
 
@@ -210,8 +249,12 @@ for ($page = 0; $page < $maxPages; $page++) {
     $data = obtenerJson($url);
     if (!$data || !($data['success'] ?? false)) {
         if ($page === 0) {
-            http_response_code(502);
-            echo json_encode(['error' => 'No se pudo leer el catálogo de medicamentos de Ecuador']);
+            echo json_encode([
+                'origen' => 'Fallback local (lectura de catálogo fallida)',
+                'total' => count($fallbackMedicamentos),
+                'medicamentos' => $fallbackMedicamentos,
+                'warning' => 'No se pudo leer el catálogo de medicamentos de Ecuador',
+            ]);
             exit;
         }
         break;
@@ -269,7 +312,7 @@ for ($page = 0; $page < $maxPages; $page++) {
             continue;
         }
 
-        $key = mb_strtolower($nombre . '|' . $tipo . '|' . $dosis, 'UTF-8');
+        $key = textoLower($nombre . '|' . $tipo . '|' . $dosis);
         if (isset($seen[$key])) {
             continue;
         }
