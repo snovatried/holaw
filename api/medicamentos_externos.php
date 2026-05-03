@@ -112,7 +112,7 @@ for ($pagina = 0; $pagina < $maxPaginas; $pagina++) {
 
         $nombre = trim((string) ($item['brand_name'] ?? $item['generic_name'] ?? ''));
         $tipo = trim((string) ($item['dosage_form'] ?? ''));
-        $dosis = trim((string) ($item['strength'] ?? 'No especificada'));
+        $dosis = trim((string) ($item['strength'] ?? 'Dosis no informada por openFDA'));
 
         if ($nombre === '' || !esFormaComestible($tipo)) {
             continue;

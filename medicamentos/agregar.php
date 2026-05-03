@@ -41,8 +41,11 @@ if ($rol === 'admin') {
             </div>
         <?php endif; ?>
 
+        <label for="buscar_medicamento">Buscar medicamento</label>
+        <input id="buscar_medicamento" type="search" placeholder="Escribe para filtrar por nombre, tipo o dosis" autocomplete="off" style="margin-bottom: 10px;">
+
         <label for="medicamento_api">Medicamento</label>
-        <select id="medicamento_api" style="margin-bottom: 12px;">
+        <select id="medicamento_api" size="8" style="margin-bottom: 12px;">
             <option value="">Cargando medicamentos...</option>
         </select>
 
@@ -69,10 +72,12 @@ if ($rol === 'admin') {
 
 <script>
 const selectMedicamento = document.getElementById('medicamento_api');
+const buscarMedicamentoInput = document.getElementById('buscar_medicamento');
 const nombreInput = document.getElementById('nombre');
 const tipoInput = document.getElementById('tipo');
 const dosisInput = document.getElementById('dosis');
 const formMedicamento = document.getElementById('form_medicamento');
+let medicamentosCatalogo = [];
 
 function esTipoComestible(tipo = '') {
     const t = String(tipo).toLowerCase().trim();
@@ -96,10 +101,18 @@ async function cargarMedicamentos() {
 
         const data = await response.json();
         const meds = data.medicamentos || [];
+        medicamentosCatalogo = meds;
 
-        selectMedicamento.innerHTML = '<option value="">Selecciona un medicamento</option>';
+        renderMedicamentos(meds);
+    } catch (e) {
+        selectMedicamento.innerHTML = '<option value="">No se pudo cargar la API</option>';
+    }
+}
 
-        meds.forEach((med, index) => {
+function renderMedicamentos(lista) {
+    selectMedicamento.innerHTML = '<option value="">Selecciona un medicamento</option>';
+
+    lista.forEach((med, index) => {
             const option = document.createElement('option');
             option.value = index;
             option.textContent = `${med.nombre} - ${med.tipo} - ${med.dosis}`;
@@ -107,11 +120,25 @@ async function cargarMedicamentos() {
             option.dataset.tipo = med.tipo;
             option.dataset.dosis = med.dosis;
             selectMedicamento.appendChild(option);
-        });
-    } catch (e) {
-        selectMedicamento.innerHTML = '<option value="">No se pudo cargar la API</option>';
-    }
+    });
 }
+
+buscarMedicamentoInput.addEventListener('input', (e) => {
+    const termino = (e.target.value || '').toLowerCase().trim();
+    if (!termino) {
+        renderMedicamentos(medicamentosCatalogo);
+        return;
+    }
+
+    const filtrados = medicamentosCatalogo.filter((med) => {
+        return [med.nombre, med.tipo, med.dosis]
+            .join(' ')
+            .toLowerCase()
+            .includes(termino);
+    });
+
+    renderMedicamentos(filtrados);
+});
 
 selectMedicamento.addEventListener('change', (e) => {
     const option = e.target.selectedOptions[0];
