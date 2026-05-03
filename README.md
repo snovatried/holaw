@@ -124,6 +124,11 @@ Marca el dispositivo como conectado y actualiza `ultimo_ping`.
 Consulta openFDA (NDC) y devuelve medicamentos filtrados para el dispensador.
 Por defecto filtra solo medicamentos presentes en catálogo ARCSA Ecuador. Puedes desactivar ese filtro con `?solo_ecuador=0`.
 
+### `GET /api/health.php`
+Endpoint de diagnóstico rápido para verificar estado de PHP y conexión a base de datos.
+- Responde `200` cuando todo está OK.
+- Responde `503` si falla la conexión a DB.
+
 ---
 
 ## Notificaciones por correo
@@ -160,6 +165,12 @@ Dockerfile           Imagen base para Render
 ---
 
 ## Troubleshooting
+
+### API no responde o falla
+- Prueba primero `GET /api/health.php` para saber si el problema es de infraestructura.
+- Si responde `503`, revisa variables `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` en Render.
+- Si responde `200`, prueba luego cada endpoint con el método correcto (`GET` o `POST`).
+- Para endpoints `POST`, asegúrate de enviar `application/json` o `form-data`.
 
 ### Error de conexión a base de datos
 - Revisa configuración de conexión Supabase en Render.
