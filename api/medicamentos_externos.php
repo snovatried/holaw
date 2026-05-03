@@ -130,8 +130,8 @@ function esFormaExcluida(string $tipo): bool
 
     $bloqueadas = [
         'jarabe', 'spray', 'aerosol', 'inyectable', 'inyección',
-        'crema', 'pomada', 'gel', 'parche', 'gotas', 'solución', 'solucion',
-        'suspensión', 'suspension', 'supositorio', 'champú', 'loción', 'locion', 'tópico', 'topico',
+        'crema', 'pomada', 'gel', 'parche', 'gotas', 'solución',
+        'suspensión', 'supositorio', 'champú', 'loción', 'tópico',
     ];
 
     foreach ($bloqueadas as $forma) {
@@ -147,29 +147,21 @@ $terminosBusqueda = ['a', 'e', 'i', 'o', 'u', 'paracetamol', 'ibuprofeno', 'amox
 $medicamentos = [];
 $seen = [];
 
-$maxPaginasPorTermino = 8;
-
 foreach ($terminosBusqueda as $termino) {
-    for ($pagina = 1; $pagina <= $maxPaginasPorTermino; $pagina++) {
-        $url = $apiCimaBase . '/medicamentos?nombre=' . urlencode($termino) . '&pagina=' . $pagina;
-        $data = obtenerJson($url);
+    $url = $apiCimaBase . '/medicamentos?nombre=' . urlencode($termino);
+    $data = obtenerJson($url);
 
-        if (!$data || !is_array($data['resultados'] ?? null)) {
-            break;
-        }
+    if (!$data || !is_array($data['resultados'] ?? null)) {
+        continue;
+    }
 
-        $resultados = $data['resultados'];
-        if (count($resultados) === 0) {
-            break;
-        }
-
-        foreach ($resultados as $item) {
+    foreach ($data['resultados'] as $item) {
         if (!is_array($item)) {
             continue;
         }
 
         $nombre = buscarCampo($item, ['nombre', 'nombre_comercial', 'medicamento', 'nregistro']);
-        $tipo = buscarCampo($item, ['forma_farmaceutica', 'forma_farmaceutica_simplificada', 'formaFarmaceutica', 'via_administracion', 'viaAdministracion', 'viasAdministracion']);
+        $tipo = buscarCampo($item, ['forma_farmaceutica', 'forma_farmaceutica_simplificada', 'formaFarmaceutica', 'via_administracion', 'viaAdministracion']);
         $dosis = buscarCampo($item, ['dosis', 'concentracion', 'principio_activo', 'pactivos']);
 
         if ($nombre === '') {
@@ -200,11 +192,26 @@ foreach ($terminosBusqueda as $termino) {
             break 3;
         }
     }
+}
 
-        if (count($resultados) < 25) {
-            break;
-        }
-    }
+if (count($medicamentos) === 0) {
+    echo json_encode([
+        'origen' => 'Respaldo local (falló CIMA en español)',
+        'total' => count($fallbackMedicamentos),
+        'medicamentos' => $fallbackMedicamentos,
+        'warning' => 'No se pudo leer la API CIMA de medicamentos en español',
+    ], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+if (count($medicamentos) === 0) {
+    echo json_encode([
+        'origen' => 'Respaldo local (falló CIMA en español)',
+        'total' => count($fallbackMedicamentos),
+        'medicamentos' => $fallbackMedicamentos,
+        'warning' => 'No se pudo leer la API CIMA de medicamentos en español',
+    ], JSON_UNESCAPED_UNICODE);
+    exit;
 }
 
 if (count($medicamentos) === 0) {
