@@ -8,8 +8,6 @@ if ($_SERVER["REQUEST_METHOD"] !== "POST") {
 }
 
 try {
-    require "../config/conexion.php";
-
     $sql = "UPDATE configuracion_dispositivo
     SET estado = 'conectado',
         ultimo_ping = NOW()
@@ -18,15 +16,10 @@ try {
     $pdo->prepare($sql)->execute();
 
     echo json_encode([
-        "estado" => "online",
-        "mensaje" => "Ping actualizado"
+        "estado" => "online"
     ]);
 } catch (Throwable $e) {
     http_response_code(500);
     error_log("estado_dispositivo error: " . $e->getMessage());
-    echo json_encode([
-        "estado" => "error",
-        "mensaje" => "No se pudo actualizar el estado",
-        "detalle" => $e->getPrevious()?->getMessage() ?? $e->getMessage()
-    ]);
+    echo json_encode(["estado" => "error", "mensaje" => "No se pudo actualizar el estado"]);
 }
