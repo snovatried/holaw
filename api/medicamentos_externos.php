@@ -44,14 +44,46 @@ function obtenerJson(string $url): ?array
     return is_array($data) ? $data : null;
 }
 
+function normalizarClave(string $texto): string
+{
+    $texto = textoLower($texto);
+    return preg_replace('/[^a-z0-9]+/u', '_', $texto) ?? '';
+}
+
+function valorATexto(mixed $valor): string
+{
+    if (is_string($valor) || is_numeric($valor)) {
+        return trim((string) $valor);
+    }
+
+    if (is_array($valor)) {
+        $partes = [];
+        foreach ($valor as $item) {
+            $txt = valorATexto($item);
+            if ($txt !== '') {
+                $partes[] = $txt;
+            }
+        }
+        return trim(implode(' ', $partes));
+    }
+
+    return '';
+}
+
 function buscarCampo(array $item, array $aliases): string
 {
+    $indice = [];
+    foreach ($item as $key => $valor) {
+        $indice[normalizarClave((string) $key)] = valorATexto($valor);
+    }
+
     foreach ($aliases as $alias) {
-        if (!array_key_exists($alias, $item)) {
+        $clave = normalizarClave($alias);
+        if (!array_key_exists($clave, $indice)) {
             continue;
         }
 
-        $valor = trim((string) $item[$alias]);
+        $valor = trim($indice[$clave]);
         if ($valor !== '') {
             return $valor;
         }
@@ -120,12 +152,16 @@ foreach ($terminosBusqueda as $termino) {
             continue;
         }
 
-        $nombre = buscarCampo($item, ['nombre', 'nregistro']);
-        $tipo = buscarCampo($item, ['forma_farmaceutica', 'via_administracion']);
-        $dosis = buscarCampo($item, ['dosis', 'concentracion']);
+        $nombre = buscarCampo($item, ['nombre', 'nombre_comercial', 'medicamento', 'nregistro']);
+        $tipo = buscarCampo($item, ['forma_farmaceutica', 'forma_farmaceutica_simplificada', 'formaFarmaceutica', 'via_administracion', 'viaAdministracion']);
+        $dosis = buscarCampo($item, ['dosis', 'concentracion', 'principio_activo', 'pactivos']);
 
-        if ($nombre === '' || $tipo === '') {
+        if ($nombre === '') {
             continue;
+        }
+
+        if ($tipo === '') {
+            $tipo = $nombre;
         }
 
         if (esFormaExcluida($tipo) || !esFormaComestible($tipo)) {
