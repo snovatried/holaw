@@ -203,8 +203,33 @@ function obtenerCatalogoEcuador(string $apiCkanBase, int $maxItems = 2000): arra
     $resourceId = '';
     $results = $searchData['result']['results'] ?? [];
     foreach ($results as $dataset) {
+        $datasetTitle = textoLower((string) ($dataset['title'] ?? ''));
+        $datasetNotes = textoLower((string) ($dataset['notes'] ?? ''));
+        $datasetEsMedicamentos = str_contains($datasetTitle, 'medicamento')
+            || str_contains($datasetNotes, 'medicamento')
+            || str_contains($datasetTitle, 'arcsa')
+            || str_contains($datasetNotes, 'arcsa');
+
         foreach (($dataset['resources'] ?? []) as $resource) {
+            $resourceFormat = textoLower((string) ($resource['format'] ?? ''));
+            $resourceName = textoLower((string) ($resource['name'] ?? ''));
+            $resourceDescription = textoLower((string) ($resource['description'] ?? ''));
+
             if (!($resource['datastore_active'] ?? false)) {
+                continue;
+            }
+
+            $resourceEsMedicamentos = str_contains($resourceName, 'medicamento')
+                || str_contains($resourceDescription, 'medicamento')
+                || str_contains($resourceName, 'arcsa')
+                || str_contains($resourceDescription, 'arcsa')
+                || $datasetEsMedicamentos;
+
+            if (!$resourceEsMedicamentos) {
+                continue;
+            }
+
+            if (!in_array($resourceFormat, ['csv', 'xlsx', 'json', 'ods'], true)) {
                 continue;
             }
 
@@ -221,7 +246,8 @@ function obtenerCatalogoEcuador(string $apiCkanBase, int $maxItems = 2000): arra
 
     $nombres = [];
     $limit = 200;
-    for ($page = 0; $page < 5; $page++) {
+    $maxPages = max(1, (int) ceil($maxItems / $limit));
+    for ($page = 0; $page < $maxPages; $page++) {
         $offset = $page * $limit;
         $url = $apiCkanBase . '/datastore_search?resource_id=' . urlencode($resourceId) . '&limit=' . $limit . '&offset=' . $offset;
         $data = obtenerJson($url);
@@ -257,6 +283,19 @@ function obtenerCatalogoEcuador(string $apiCkanBase, int $maxItems = 2000): arra
     }
 
     return $nombres;
+}
+
+$catalogoEcuador = $soloEcuador ? obtenerCatalogoEcuador($apiCkanBase) : [];
+$catalogoEcuadorDisponible = count($catalogoEcuador) > 0;
+
+if ($soloEcuador && !$catalogoEcuadorDisponible) {
+    echo json_encode([
+        'origen' => 'Fallback local (catálogo ARCSA no disponible)',
+        'total' => count($fallbackMedicamentos),
+        'medicamentos' => $fallbackMedicamentos,
+        'warning' => 'No se pudo validar disponibilidad en Ecuador porque ARCSA no está disponible',
+    ]);
+    exit;
 }
 
 $catalogoEcuador = $soloEcuador ? obtenerCatalogoEcuador($apiCkanBase) : [];
@@ -299,19 +338,23 @@ for ($page = 0; $page < $maxPages; $page++) {
 
         $tipo = buscarCampo($item, ['dosage_form', 'route']);
 
-        $dosis = buscarCampo($item, ['active_ingredients', 'strength']);
-        if ($dosis !== '' && str_starts_with(trim($dosis), '[')) {
-            $ingredientes = json_decode($dosis, true);
-            if (is_array($ingredientes) && isset($ingredientes[0]['strength'])) {
+        $dosis = '';
+        if (isset($item['active_ingredients']) && is_array($item['active_ingredients'])) {
+            $ingredientes = $item['active_ingredients'];
+            if (isset($ingredientes[0]['strength']) && trim((string) $ingredientes[0]['strength']) !== '') {
                 $dosis = (string) $ingredientes[0]['strength'];
             }
+        }
+
+        if ($dosis === '') {
+            $dosis = buscarCampo($item, ['strength']);
         }
 
         if ($nombre === '') {
             continue;
         }
 
-        if ($soloEcuador && $catalogoEcuadorDisponible) {
+        if ($soloEcuador) {
             $nombreNorm = normalizarNombreMedicamento($nombre);
             $genericNorm = normalizarNombreMedicamento(buscarCampo($item, ['generic_name', 'substance_name']));
             $coincide = isset($catalogoEcuador[$nombreNorm]) || ($genericNorm !== '' && isset($catalogoEcuador[$genericNorm]));
