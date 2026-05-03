@@ -54,11 +54,59 @@ function obtenerJson(string $url, ?string &$error = null): ?array
     return $data;
 }
 
+
+function obtenerDosis(array $item): string
+{
+    $dosis = trim((string) ($item['strength'] ?? ''));
+    if ($dosis !== '') {
+        return $dosis;
+    }
+
+    $ingredientes = $item['active_ingredients'] ?? null;
+    if (!is_array($ingredientes)) {
+        return 'No especificada';
+    }
+
+    $partes = [];
+    foreach ($ingredientes as $ingrediente) {
+        if (!is_array($ingrediente)) {
+            continue;
+        }
+
+        $nombre = trim((string) ($ingrediente['name'] ?? ''));
+        $fuerza = trim((string) ($ingrediente['strength'] ?? ''));
+
+        if ($fuerza === '') {
+            continue;
+        }
+
+        $partes[] = $nombre !== '' ? ($nombre . ' ' . $fuerza) : $fuerza;
+    }
+
+    if (count($partes) === 0) {
+        return 'No especificada';
+    }
+
+    $partes = array_values(array_unique($partes));
+    return implode(' + ', $partes);
+}
+
 function esFormaComestible(string $tipo): bool
 {
     $tipoLower = textoLower($tipo);
     if ($tipoLower === '') {
         return false;
+    }
+
+    $formasBloqueadas = [
+        'solution', 'solucion', 'solución', 'syrup', 'jarabe',
+        'suspension', 'suspensión', 'elixir', 'drop', 'drops', 'liquid',
+    ];
+
+    foreach ($formasBloqueadas as $forma) {
+        if (str_contains($tipoLower, $forma)) {
+            return false;
+        }
     }
 
     $formasPermitidas = [
@@ -102,7 +150,7 @@ foreach ($terminosBusqueda as $termino) {
 
         $nombre = trim((string) ($item['brand_name'] ?? $item['generic_name'] ?? ''));
         $tipo = trim((string) ($item['dosage_form'] ?? ''));
-        $dosis = trim((string) ($item['strength'] ?? 'No especificada'));
+        $dosis = obtenerDosis($item);
 
         if ($nombre === '' || !esFormaComestible($tipo)) {
             continue;
