@@ -9,9 +9,9 @@ if (!isset($_SESSION['id_usuario']) || !in_array($_SESSION['rol'] ?? '', ['admin
 
 $tipo = trim((string) ($_POST['tipo'] ?? ''));
 $tipoLower = mb_strtolower($tipo, 'UTF-8');
-$permitidos = ['tablet', 'capsule', 'caplet', 'pill', 'comprimido', 'cápsula', 'capsula', 'gragea', 'pastilla', 'chewable', 'lozenge', 'troche', 'oral'];
+$permitidos = ['tablet', 'capsule', 'caplet', 'pill', 'comprimido', 'cápsula', 'capsula', 'gragea', 'pastilla', 'chewable', 'lozenge', 'troche'];
 
-$bloqueados = ['solution', 'solucion', 'solución', 'syrup', 'jarabe', 'suspension', 'suspensión'];
+$bloqueados = ['solution', 'solucion', 'solución', 'syrup', 'jarabe', 'suspension', 'suspensión', 'spray', 'aerosol', 'drops', 'drop', 'liquid', 'elixir', 'mouthwash', 'rinse'];
 foreach ($bloqueados as $forma) {
     if (str_contains($tipoLower, $forma)) {
         header('Location: agregar.php?error=tipo_no_comestible');

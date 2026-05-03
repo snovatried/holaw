@@ -61,9 +61,19 @@ function esFormaComestible(string $tipo): bool
         return false;
     }
 
+    $formasBloqueadas = [
+        'solution', 'solucion', 'solución', 'syrup', 'jarabe', 'suspension', 'suspensión',
+        'spray', 'aerosol', 'drops', 'drop', 'liquid', 'elixir', 'mouthwash', 'rinse',
+    ];
+    foreach ($formasBloqueadas as $forma) {
+        if (str_contains($tipoLower, $forma)) {
+            return false;
+        }
+    }
+
     $formasPermitidas = [
         'tablet', 'capsule', 'caplet', 'pill', 'chewable', 'lozenge', 'troche',
-        'comprimido', 'capsula', 'cápsula', 'pastilla', 'gragea', 'oral',
+        'comprimido', 'capsula', 'cápsula', 'pastilla', 'gragea',
     ];
 
     foreach ($formasPermitidas as $forma) {
@@ -75,22 +85,22 @@ function esFormaComestible(string $tipo): bool
     return false;
 }
 
-$terminosBusqueda = ['paracetamol', 'ibuprofen', 'amoxicillin', 'omeprazole', 'loratadine', 'metformin'];
+$maxPaginas = 8; // 8 * 100 = hasta 800 registros crudos antes de filtrar.
 $medicamentos = [];
 $seen = [];
 $erroresApi = [];
 
-foreach ($terminosBusqueda as $termino) {
+for ($pagina = 0; $pagina < $maxPaginas; $pagina++) {
+    $skip = $pagina * 100;
     $url = $openFdaBase
-        . '?search=generic_name:' . urlencode('"' . $termino . '"')
-        . '&limit=100';
+        . '?limit=100&skip=' . $skip;
 
     $errorApi = null;
     $data = obtenerJson($url, $errorApi);
 
     if (!$data || !is_array($data['results'] ?? null)) {
         if ($errorApi !== null) {
-            $erroresApi[] = '[término=' . $termino . '] ' . $errorApi;
+            $erroresApi[] = '[página=' . ($pagina + 1) . '] ' . $errorApi;
         }
         continue;
     }
