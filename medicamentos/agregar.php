@@ -78,12 +78,12 @@ function esTipoComestible(tipo = '') {
     const t = String(tipo).toLowerCase().trim();
     if (!t) return false;
 
-    const bloqueados = ['solution', 'solucion', 'solución', 'syrup', 'jarabe', 'suspension', 'suspensión'];
+    const bloqueados = ['solution', 'solucion', 'solución', 'syrup', 'jarabe', 'suspension', 'suspensión', 'spray', 'aerosol', 'drops', 'drop', 'liquid', 'elixir', 'mouthwash', 'rinse'];
     if (bloqueados.some((b) => t.includes(b))) return false;
 
     const permitidos = [
         'tablet', 'capsule', 'caplet', 'pill', 'comprimido', 'cápsula',
-        'capsula', 'gragea', 'pastilla', 'chewable', 'lozenge', 'troche', 'oral'
+        'capsula', 'gragea', 'pastilla', 'chewable', 'lozenge', 'troche'
     ];
 
     return permitidos.some((p) => t.includes(p));
