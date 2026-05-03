@@ -203,8 +203,33 @@ function obtenerCatalogoEcuador(string $apiCkanBase, int $maxItems = 2000): arra
     $resourceId = '';
     $results = $searchData['result']['results'] ?? [];
     foreach ($results as $dataset) {
+        $datasetTitle = textoLower((string) ($dataset['title'] ?? ''));
+        $datasetNotes = textoLower((string) ($dataset['notes'] ?? ''));
+        $datasetEsMedicamentos = str_contains($datasetTitle, 'medicamento')
+            || str_contains($datasetNotes, 'medicamento')
+            || str_contains($datasetTitle, 'arcsa')
+            || str_contains($datasetNotes, 'arcsa');
+
         foreach (($dataset['resources'] ?? []) as $resource) {
+            $resourceFormat = textoLower((string) ($resource['format'] ?? ''));
+            $resourceName = textoLower((string) ($resource['name'] ?? ''));
+            $resourceDescription = textoLower((string) ($resource['description'] ?? ''));
+
             if (!($resource['datastore_active'] ?? false)) {
+                continue;
+            }
+
+            $resourceEsMedicamentos = str_contains($resourceName, 'medicamento')
+                || str_contains($resourceDescription, 'medicamento')
+                || str_contains($resourceName, 'arcsa')
+                || str_contains($resourceDescription, 'arcsa')
+                || $datasetEsMedicamentos;
+
+            if (!$resourceEsMedicamentos) {
+                continue;
+            }
+
+            if (!in_array($resourceFormat, ['csv', 'xlsx', 'json', 'ods'], true)) {
                 continue;
             }
 
