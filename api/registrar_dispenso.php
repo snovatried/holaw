@@ -1,8 +1,18 @@
 <?php
-require "../config/conexion.php";
-require "../config/notificaciones.php";
-
 header("Content-Type: application/json");
+
+try {
+    require "../config/conexion.php";
+    require "../config/notificaciones.php";
+} catch (Throwable $e) {
+    http_response_code(500);
+    echo json_encode([
+        "estado" => "error",
+        "mensaje" => "No se pudo inicializar la API",
+        "detalle" => $e->getPrevious()?->getMessage() ?? $e->getMessage()
+    ]);
+    exit;
+}
 
 // Basic validation
 $payload = $_POST;
@@ -52,6 +62,7 @@ try {
     error_log("registrar_dispenso error: " . $e->getMessage());
     echo json_encode([
         "estado" => "error",
-        "mensaje" => "Error al registrar el dispenso"
+        "mensaje" => "Error al registrar el dispenso",
+        "detalle" => $e->getMessage()
     ]);
 }

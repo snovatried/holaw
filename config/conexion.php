@@ -13,5 +13,5 @@ try {
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
     ]);
 } catch (PDOException $e) {
-    die("Error de conexión a Supabase: " . $e->getMessage());
+    throw new RuntimeException("Error de conexión a Supabase", 0, $e);
 }
