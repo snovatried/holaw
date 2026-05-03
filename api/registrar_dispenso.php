@@ -5,9 +5,19 @@ require "../config/notificaciones.php";
 header("Content-Type: application/json");
 
 // Basic validation
-$id_programacion = $_POST['id_programacion'] ?? null;
-$resultado = $_POST['resultado'] ?? null; // 'exitoso' or 'error'
-$obs = $_POST['observaciones'] ?? null;
+$payload = $_POST;
+
+if (empty($payload)) {
+    $raw = file_get_contents('php://input');
+    $decoded = json_decode($raw, true);
+    if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+        $payload = $decoded;
+    }
+}
+
+$id_programacion = $payload['id_programacion'] ?? null;
+$resultado = $payload['resultado'] ?? null; // 'exitoso' or 'error'
+$obs = $payload['observaciones'] ?? null;
 
 if (!$id_programacion || !$resultado) {
     http_response_code(400);
