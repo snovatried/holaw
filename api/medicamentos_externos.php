@@ -23,7 +23,15 @@ function textoLower(string $texto): string
         return mb_strtolower($texto, 'UTF-8');
     }
 
-    return strtolower($texto);
+    $map = [
+        'Á' => 'á', 'É' => 'é', 'Í' => 'í', 'Ó' => 'ó', 'Ú' => 'ú',
+        'À' => 'à', 'È' => 'è', 'Ì' => 'ì', 'Ò' => 'ò', 'Ù' => 'ù',
+        'Ä' => 'ä', 'Ë' => 'ë', 'Ï' => 'ï', 'Ö' => 'ö', 'Ü' => 'ü',
+        'Â' => 'â', 'Ê' => 'ê', 'Î' => 'î', 'Ô' => 'ô', 'Û' => 'û',
+        'Ã' => 'ã', 'Õ' => 'õ', 'Ñ' => 'ñ', 'Ç' => 'ç',
+    ];
+
+    return strtr(strtolower($texto), $map);
 }
 
 function obtenerJson(string $url): ?array
@@ -181,9 +189,19 @@ foreach ($terminosBusqueda as $termino) {
         ];
 
         if (count($medicamentos) >= $maxMedicamentos) {
-            break 2;
+            break 3;
         }
     }
+}
+
+if (count($medicamentos) === 0) {
+    echo json_encode([
+        'origen' => 'Respaldo local (falló CIMA en español)',
+        'total' => count($fallbackMedicamentos),
+        'medicamentos' => $fallbackMedicamentos,
+        'warning' => 'No se pudo leer la API CIMA de medicamentos en español',
+    ], JSON_UNESCAPED_UNICODE);
+    exit;
 }
 
 if (count($medicamentos) === 0) {
