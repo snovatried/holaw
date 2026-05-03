@@ -34,7 +34,7 @@ function textoLower(string $texto): string
     return strtr(strtolower($texto), $map);
 }
 
-function obtenerJson(string $url): ?array
+function obtenerJson(string $url, ?string &$error = null): ?array
 {
     $context = stream_context_create([
         'http' => [
@@ -45,11 +45,25 @@ function obtenerJson(string $url): ?array
 
     $response = @file_get_contents($url, false, $context);
     if ($response === false) {
+        $httpStatus = 'sin código HTTP';
+        global $http_response_header;
+        if (isset($http_response_header[0])) {
+            $httpStatus = trim((string) $http_response_header[0]);
+        }
+
+        $lastError = error_get_last();
+        $detalle = trim((string) ($lastError['message'] ?? 'error de conexión'));
+        $error = 'Fallo al consultar URL (' . $httpStatus . '): ' . $detalle;
         return null;
     }
 
     $data = json_decode($response, true);
-    return is_array($data) ? $data : null;
+    if (!is_array($data)) {
+        $error = 'Respuesta no JSON o JSON inválido en URL: ' . $url;
+        return null;
+    }
+
+    return $data;
 }
 
 function normalizarClave(string $texto): string
@@ -130,8 +144,8 @@ function esFormaExcluida(string $tipo): bool
 
     $bloqueadas = [
         'jarabe', 'spray', 'aerosol', 'inyectable', 'inyección',
-        'crema', 'pomada', 'gel', 'parche', 'gotas', 'solución',
-        'suspensión', 'supositorio', 'champú', 'loción', 'tópico',
+        'crema', 'pomada', 'gel', 'parche', 'gotas', 'solución', 'solucion',
+        'suspensión', 'suspension', 'supositorio', 'champú', 'loción', 'locion', 'tópico', 'topico',
     ];
 
     foreach ($bloqueadas as $forma) {
@@ -146,22 +160,37 @@ function esFormaExcluida(string $tipo): bool
 $terminosBusqueda = ['a', 'e', 'i', 'o', 'u', 'paracetamol', 'ibuprofeno', 'amoxicilina'];
 $medicamentos = [];
 $seen = [];
+$erroresApi = [];
+
+$maxPaginasPorTermino = 8;
 
 foreach ($terminosBusqueda as $termino) {
-    $url = $apiCimaBase . '/medicamentos?nombre=' . urlencode($termino);
-    $data = obtenerJson($url);
+    for ($pagina = 1; $pagina <= $maxPaginasPorTermino; $pagina++) {
+        $url = $apiCimaBase . '/medicamentos?nombre=' . urlencode($termino) . '&pagina=' . $pagina;
+        $errorApi = null;
+        $data = obtenerJson($url, $errorApi);
 
-    if (!$data || !is_array($data['resultados'] ?? null)) {
-        continue;
-    }
+        if (!$data || !is_array($data['resultados'] ?? null)) {
+            if ($errorApi !== null) {
+                $erroresApi[] = '[término=' . $termino . ', página=' . $pagina . '] ' . $errorApi;
+            } else {
+                $erroresApi[] = '[término=' . $termino . ', página=' . $pagina . '] Respuesta sin campo resultados';
+            }
+            break;
+        }
 
-    foreach ($data['resultados'] as $item) {
+        $resultados = $data['resultados'];
+        if (count($resultados) === 0) {
+            break;
+        }
+
+        foreach ($resultados as $item) {
         if (!is_array($item)) {
             continue;
         }
 
         $nombre = buscarCampo($item, ['nombre', 'nombre_comercial', 'medicamento', 'nregistro']);
-        $tipo = buscarCampo($item, ['forma_farmaceutica', 'forma_farmaceutica_simplificada', 'formaFarmaceutica', 'via_administracion', 'viaAdministracion']);
+        $tipo = buscarCampo($item, ['forma_farmaceutica', 'forma_farmaceutica_simplificada', 'formaFarmaceutica', 'via_administracion', 'viaAdministracion', 'viasAdministracion']);
         $dosis = buscarCampo($item, ['dosis', 'concentracion', 'principio_activo', 'pactivos']);
 
         if ($nombre === '') {
@@ -220,6 +249,17 @@ if (count($medicamentos) === 0) {
         'total' => count($fallbackMedicamentos),
         'medicamentos' => $fallbackMedicamentos,
         'warning' => 'No se pudo leer la API CIMA de medicamentos en español',
+    ], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+if (count($medicamentos) === 0) {
+    echo json_encode([
+        'origen' => 'Respaldo local (falló CIMA en español)',
+        'total' => count($fallbackMedicamentos),
+        'medicamentos' => $fallbackMedicamentos,
+        'warning' => 'No se pudo leer la API CIMA de medicamentos en español',
+        'errores' => array_slice($erroresApi, 0, 10),
     ], JSON_UNESCAPED_UNICODE);
     exit;
 }
