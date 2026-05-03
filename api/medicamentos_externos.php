@@ -298,6 +298,9 @@ if ($soloEcuador && !$catalogoEcuadorDisponible) {
     exit;
 }
 
+$catalogoEcuador = $soloEcuador ? obtenerCatalogoEcuador($apiCkanBase) : [];
+$catalogoEcuadorDisponible = count($catalogoEcuador) > 0;
+
 $medicamentos = [];
 $seen = [];
 
