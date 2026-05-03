@@ -98,6 +98,17 @@ function esFormaComestible(string $tipo): bool
         return false;
     }
 
+    $formasBloqueadas = [
+        'solution', 'solucion', 'solución', 'syrup', 'jarabe',
+        'suspension', 'suspensión', 'elixir', 'drop', 'drops', 'liquid',
+    ];
+
+    foreach ($formasBloqueadas as $forma) {
+        if (str_contains($tipoLower, $forma)) {
+            return false;
+        }
+    }
+
     $formasPermitidas = [
         'tablet', 'capsule', 'caplet', 'pill', 'chewable', 'lozenge', 'troche',
         'comprimido', 'capsula', 'cápsula', 'pastilla', 'gragea', 'oral',
