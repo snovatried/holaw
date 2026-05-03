@@ -1,0 +1,73 @@
+Descripción de funciones más importantes y destacadas del sistema
+
+1) Inicio de sesión inteligente
+- Ruta: /index.php
+- Función destacada: permite entrar con usuario/contraseña o con Google desde una sola pantalla.
+- Valor: simplifica el acceso para usuarios nuevos y existentes.
+
+2) Autenticación y control de roles
+- Rutas: /auth/validarlogin.php, /auth/google_login.php, /auth/logout.php
+- Funciones destacadas:
+  - Login clásico validando usuario activo y contraseña segura (hash).
+  - Login con Google validando token real contra Google.
+  - Creación automática de paciente si el correo de Google no existe.
+  - Cierre de sesión limpio.
+- Valor: seguridad básica + experiencia rápida de ingreso.
+
+3) Dashboards por tipo de usuario
+- Rutas: /dashboard/admin.php, /dashboard/cuidador.php, /dashboard/paciente.php
+- Funciones destacadas:
+  - Admin: centraliza gestión de medicamentos, programación, historial y asignaciones.
+  - Cuidador: ve próximos medicamentos y puede trabajar en modo migrado o legado.
+  - Paciente: ve su propia programación de forma clara.
+- Valor: cada usuario ve solo lo que necesita según su rol.
+
+4) Gestión de medicamentos con ayuda externa
+- Rutas: /medicamentos/agregar.php, /medicamentos/guardar.php, /medicamentos/listar.php
+- Funciones destacadas:
+  - Alta y consulta de medicamentos del sistema.
+  - Carga desde API externa para autocompletar nombre/tipo/dosis.
+  - Filtro automático para excluir jarabes/syrup.
+- Valor: reduce errores de captura y acelera el registro.
+
+5) Programación de dispensos
+- Rutas: /programacion/crear.php, /programacion/guardar.php
+- Funciones destacadas:
+  - Configura hora, frecuencia y cantidad de cada medicamento.
+  - Permite asociar la programación a paciente cuando está activa la migración.
+- Valor: organiza de forma estructurada cuándo y cuánto dispensar.
+
+6) Asignación cuidador-paciente (función clave de operación)
+- Ruta: /asignaciones/gestionar.php
+- Funciones destacadas:
+  - Aplica migración automática si la base aún no está preparada.
+  - Asigna pacientes a cuidadores desde interfaz web.
+  - Muestra asignaciones vigentes.
+- Valor: habilita seguimiento real de pacientes por cuidador.
+
+7) Historial de dispensación
+- Ruta: /historial/ver.php
+- Función destacada: consulta eventos de dispensación con resultado y observaciones.
+- Valor: trazabilidad para control, auditoría y soporte.
+
+8) APIs internas para integración y automatización
+- Rutas: /api/medicamentos_externos.php, /api/obtener_programacion.php, /api/estado_dispositivo.php, /api/registrar_dispenso.php
+- Funciones destacadas:
+  - Publica catálogo depurado de medicamentos externos.
+  - Entrega programación activa en tiempo real.
+  - Reporta estado online del dispositivo.
+  - Registra resultado de cada dispenso en historial.
+- Valor: conecta la web con el dispositivo dispensador y procesos automáticos.
+
+9) Base técnica que sostiene todo
+- Ruta: /config/conexion.php
+- Función destacada: conexión PDO a PostgreSQL mediante variables de entorno.
+- Valor: configuración centralizada y desplegable en distintos entornos.
+
+Resumen ejecutivo
+- Las funciones más destacadas del sistema son:
+  1. Login dual (clásico + Google).
+  2. Control por roles (admin/cuidador/paciente).
+  3. Programación y seguimiento de dispensos.
+  4. Asignación cuidador-paciente.
+  5. Integración por APIs para operación con dispositivo.
