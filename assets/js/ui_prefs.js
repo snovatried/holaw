@@ -8,6 +8,22 @@
   const get = (k) => { try { return window.localStorage.getItem(k); } catch (_) { return null; } };
   const set = (k, v) => { try { window.localStorage.setItem(k, v); } catch (_) {} };
 
+  const path = window.location.pathname;
+  const isLoginPage = /\/index\.php$/.test(path) || path === '/' || path === '';
+
+  const hasLogoutLink = !!document.querySelector('a[href*="logout.php"]');
+  if (!isLoginPage && !hasLogoutLink && !document.querySelector('.floating-logout')) {
+    const segments = path.split('/').filter(Boolean);
+    const depth = Math.max(segments.length - 1, 0);
+    const prefix = depth > 0 ? '../'.repeat(depth) : '';
+    const logout = document.createElement('a');
+    logout.className = 'btn floating-logout';
+    logout.href = `${prefix}auth/logout.php`;
+    logout.textContent = 'Cerrar sesión';
+    logout.setAttribute('aria-label', 'Cerrar sesión');
+    body.appendChild(logout);
+  }
+
   // Limpia controles legado (claro/oscuro + etiqueta "Tema actual") si existen.
   const legacyLight = document.getElementById('modo-claro');
   const legacyDark = document.getElementById('modo-oscuro');
@@ -82,4 +98,10 @@
 
   applyDys(get(DYS_KEY) === '1');
   btnDis?.addEventListener('click', () => applyDys(!body.classList.contains('dyslexia-mode')));
+
+  const animatedItems = document.querySelectorAll('.card, .nav-links li a, table, .btn');
+  animatedItems.forEach((el, index) => {
+    el.style.animationDelay = `${Math.min(index * 45, 260)}ms`;
+    el.classList.add('reveal-item');
+  });
 })();
