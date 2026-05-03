@@ -246,7 +246,8 @@ function obtenerCatalogoEcuador(string $apiCkanBase, int $maxItems = 2000): arra
 
     $nombres = [];
     $limit = 200;
-    for ($page = 0; $page < 5; $page++) {
+    $maxPages = max(1, (int) ceil($maxItems / $limit));
+    for ($page = 0; $page < $maxPages; $page++) {
         $offset = $page * $limit;
         $url = $apiCkanBase . '/datastore_search?resource_id=' . urlencode($resourceId) . '&limit=' . $limit . '&offset=' . $offset;
         $data = obtenerJson($url);
