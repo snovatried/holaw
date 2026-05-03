@@ -214,6 +214,16 @@ if (count($medicamentos) === 0) {
     exit;
 }
 
+if (count($medicamentos) === 0) {
+    echo json_encode([
+        'origen' => 'Respaldo local (falló CIMA en español)',
+        'total' => count($fallbackMedicamentos),
+        'medicamentos' => $fallbackMedicamentos,
+        'warning' => 'No se pudo leer la API CIMA de medicamentos en español',
+    ], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
 echo json_encode([
     'origen' => 'CIMA (AEMPS) - API de medicamentos en español',
     'total' => count($medicamentos),
