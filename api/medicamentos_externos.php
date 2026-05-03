@@ -1,15 +1,15 @@
 <?php
 header('Content-Type: application/json; charset=utf-8');
 
-$apiCimaBase = 'https://cima.aemps.es/cima/rest';
+$openFdaBase = 'https://api.fda.gov/drug/ndc.json';
 $maxMedicamentos = 300;
 
 $fallbackMedicamentos = [
-    ['nombre' => 'Paracetamol', 'tipo' => 'comprimido', 'dosis' => '500 mg'],
-    ['nombre' => 'Ibuprofeno', 'tipo' => 'comprimido', 'dosis' => '400 mg'],
-    ['nombre' => 'Amoxicilina', 'tipo' => 'cápsula', 'dosis' => '500 mg'],
-    ['nombre' => 'Loratadina', 'tipo' => 'comprimido', 'dosis' => '10 mg'],
-    ['nombre' => 'Omeprazol', 'tipo' => 'cápsula', 'dosis' => '20 mg'],
+    ['nombre' => 'Paracetamol', 'tipo' => 'tablet', 'dosis' => '500 mg'],
+    ['nombre' => 'Ibuprofeno', 'tipo' => 'tablet', 'dosis' => '400 mg'],
+    ['nombre' => 'Amoxicilina', 'tipo' => 'capsule', 'dosis' => '500 mg'],
+    ['nombre' => 'Loratadina', 'tipo' => 'tablet', 'dosis' => '10 mg'],
+    ['nombre' => 'Omeprazol', 'tipo' => 'capsule', 'dosis' => '20 mg'],
 ];
 
 function textoLower(string $texto): string
@@ -19,19 +19,7 @@ function textoLower(string $texto): string
         return '';
     }
 
-    if (function_exists('mb_strtolower')) {
-        return mb_strtolower($texto, 'UTF-8');
-    }
-
-    $map = [
-        'Á' => 'á', 'É' => 'é', 'Í' => 'í', 'Ó' => 'ó', 'Ú' => 'ú',
-        'À' => 'à', 'È' => 'è', 'Ì' => 'ì', 'Ò' => 'ò', 'Ù' => 'ù',
-        'Ä' => 'ä', 'Ë' => 'ë', 'Ï' => 'ï', 'Ö' => 'ö', 'Ü' => 'ü',
-        'Â' => 'â', 'Ê' => 'ê', 'Î' => 'î', 'Ô' => 'ô', 'Û' => 'û',
-        'Ã' => 'ã', 'Õ' => 'õ', 'Ñ' => 'ñ', 'Ç' => 'ç',
-    ];
-
-    return strtr(strtolower($texto), $map);
+    return function_exists('mb_strtolower') ? mb_strtolower($texto, 'UTF-8') : strtolower($texto);
 }
 
 function obtenerJson(string $url, ?string &$error = null): ?array
@@ -66,54 +54,6 @@ function obtenerJson(string $url, ?string &$error = null): ?array
     return $data;
 }
 
-function normalizarClave(string $texto): string
-{
-    $texto = textoLower($texto);
-    return preg_replace('/[^a-z0-9]+/u', '_', $texto) ?? '';
-}
-
-function valorATexto(mixed $valor): string
-{
-    if (is_string($valor) || is_numeric($valor)) {
-        return trim((string) $valor);
-    }
-
-    if (is_array($valor)) {
-        $partes = [];
-        foreach ($valor as $item) {
-            $txt = valorATexto($item);
-            if ($txt !== '') {
-                $partes[] = $txt;
-            }
-        }
-        return trim(implode(' ', $partes));
-    }
-
-    return '';
-}
-
-function buscarCampo(array $item, array $aliases): string
-{
-    $indice = [];
-    foreach ($item as $key => $valor) {
-        $indice[normalizarClave((string) $key)] = valorATexto($valor);
-    }
-
-    foreach ($aliases as $alias) {
-        $clave = normalizarClave($alias);
-        if (!array_key_exists($clave, $indice)) {
-            continue;
-        }
-
-        $valor = trim($indice[$clave]);
-        if ($valor !== '') {
-            return $valor;
-        }
-    }
-
-    return '';
-}
-
 function esFormaComestible(string $tipo): bool
 {
     $tipoLower = textoLower($tipo);
@@ -122,8 +62,8 @@ function esFormaComestible(string $tipo): bool
     }
 
     $formasPermitidas = [
-        'comprimido', 'cápsula', 'capsula', 'gragea', 'pastilla',
-        'oral', 'tableta', 'tablets', 'capsule',
+        'tablet', 'capsule', 'caplet', 'pill', 'chewable', 'lozenge', 'troche',
+        'comprimido', 'capsula', 'cápsula', 'pastilla', 'gragea', 'oral',
     ];
 
     foreach ($formasPermitidas as $forma) {
@@ -135,73 +75,36 @@ function esFormaComestible(string $tipo): bool
     return false;
 }
 
-function esFormaExcluida(string $tipo): bool
-{
-    $tipoLower = textoLower($tipo);
-    if ($tipoLower === '') {
-        return true;
-    }
-
-    $bloqueadas = [
-        'jarabe', 'spray', 'aerosol', 'inyectable', 'inyección',
-        'crema', 'pomada', 'gel', 'parche', 'gotas', 'solución', 'solucion',
-        'suspensión', 'suspension', 'supositorio', 'champú', 'loción', 'locion', 'tópico', 'topico',
-    ];
-
-    foreach ($bloqueadas as $forma) {
-        if (str_contains($tipoLower, $forma)) {
-            return true;
-        }
-    }
-
-    return false;
-}
-
-$terminosBusqueda = ['a', 'e', 'i', 'o', 'u', 'paracetamol', 'ibuprofeno', 'amoxicilina'];
+$terminosBusqueda = ['paracetamol', 'ibuprofen', 'amoxicillin', 'omeprazole', 'loratadine', 'metformin'];
 $medicamentos = [];
 $seen = [];
 $erroresApi = [];
 
-$maxPaginasPorTermino = 8;
-
 foreach ($terminosBusqueda as $termino) {
-    for ($pagina = 1; $pagina <= $maxPaginasPorTermino; $pagina++) {
-        $url = $apiCimaBase . '/medicamentos?nombre=' . urlencode($termino) . '&pagina=' . $pagina;
-        $errorApi = null;
-        $data = obtenerJson($url, $errorApi);
+    $url = $openFdaBase
+        . '?search=generic_name:' . urlencode('"' . $termino . '"')
+        . '&limit=100';
 
-        if (!$data || !is_array($data['resultados'] ?? null)) {
-            if ($errorApi !== null) {
-                $erroresApi[] = '[término=' . $termino . ', página=' . $pagina . '] ' . $errorApi;
-            } else {
-                $erroresApi[] = '[término=' . $termino . ', página=' . $pagina . '] Respuesta sin campo resultados';
-            }
-            break;
+    $errorApi = null;
+    $data = obtenerJson($url, $errorApi);
+
+    if (!$data || !is_array($data['results'] ?? null)) {
+        if ($errorApi !== null) {
+            $erroresApi[] = '[término=' . $termino . '] ' . $errorApi;
         }
+        continue;
+    }
 
-        $resultados = $data['resultados'];
-        if (count($resultados) === 0) {
-            break;
-        }
-
-        foreach ($resultados as $item) {
+    foreach ($data['results'] as $item) {
         if (!is_array($item)) {
             continue;
         }
 
-        $nombre = buscarCampo($item, ['nombre', 'nombre_comercial', 'medicamento', 'nregistro']);
-        $tipo = buscarCampo($item, ['forma_farmaceutica', 'forma_farmaceutica_simplificada', 'formaFarmaceutica', 'via_administracion', 'viaAdministracion', 'viasAdministracion']);
-        $dosis = buscarCampo($item, ['dosis', 'concentracion', 'principio_activo', 'pactivos']);
+        $nombre = trim((string) ($item['brand_name'] ?? $item['generic_name'] ?? ''));
+        $tipo = trim((string) ($item['dosage_form'] ?? ''));
+        $dosis = trim((string) ($item['strength'] ?? 'No especificada'));
 
-        if ($nombre === '') {
-            continue;
-        }
-
-        if ($tipo === '') {
-            $tipo = $nombre;
-        }
-
-        if (esFormaExcluida($tipo) || !esFormaComestible($tipo)) {
+        if ($nombre === '' || !esFormaComestible($tipo)) {
             continue;
         }
 
@@ -214,58 +117,28 @@ foreach ($terminosBusqueda as $termino) {
         $medicamentos[] = [
             'nombre' => $nombre,
             'tipo' => $tipo,
-            'dosis' => $dosis !== '' ? $dosis : 'No especificada',
+            'dosis' => $dosis,
         ];
 
         if (count($medicamentos) >= $maxMedicamentos) {
-            break 3;
+            break 2;
         }
     }
 }
 
 if (count($medicamentos) === 0) {
     echo json_encode([
-        'origen' => 'Respaldo local (falló CIMA en español)',
+        'origen' => 'Respaldo local (falló openFDA)',
         'total' => count($fallbackMedicamentos),
         'medicamentos' => $fallbackMedicamentos,
-        'warning' => 'No se pudo leer la API CIMA de medicamentos en español',
-    ], JSON_UNESCAPED_UNICODE);
-    exit;
-}
-
-if (count($medicamentos) === 0) {
-    echo json_encode([
-        'origen' => 'Respaldo local (falló CIMA en español)',
-        'total' => count($fallbackMedicamentos),
-        'medicamentos' => $fallbackMedicamentos,
-        'warning' => 'No se pudo leer la API CIMA de medicamentos en español',
-    ], JSON_UNESCAPED_UNICODE);
-    exit;
-}
-
-if (count($medicamentos) === 0) {
-    echo json_encode([
-        'origen' => 'Respaldo local (falló CIMA en español)',
-        'total' => count($fallbackMedicamentos),
-        'medicamentos' => $fallbackMedicamentos,
-        'warning' => 'No se pudo leer la API CIMA de medicamentos en español',
-    ], JSON_UNESCAPED_UNICODE);
-    exit;
-}
-
-if (count($medicamentos) === 0) {
-    echo json_encode([
-        'origen' => 'Respaldo local (falló CIMA en español)',
-        'total' => count($fallbackMedicamentos),
-        'medicamentos' => $fallbackMedicamentos,
-        'warning' => 'No se pudo leer la API CIMA de medicamentos en español',
+        'warning' => 'No se pudo leer la API openFDA',
         'errores' => array_slice($erroresApi, 0, 10),
     ], JSON_UNESCAPED_UNICODE);
     exit;
 }
 
 echo json_encode([
-    'origen' => 'CIMA (AEMPS) - API de medicamentos en español',
+    'origen' => 'openFDA (NDC)',
     'total' => count($medicamentos),
     'medicamentos' => array_values($medicamentos),
 ], JSON_UNESCAPED_UNICODE);
