@@ -8,6 +8,25 @@
   const get = (k) => { try { return window.localStorage.getItem(k); } catch (_) { return null; } };
   const set = (k, v) => { try { window.localStorage.setItem(k, v); } catch (_) {} };
 
+  const path = window.location.pathname;
+  const isRootLogin = /\/index\.php$/.test(path) && !/\/dashboard\/index\.php$/.test(path);
+  const isLoginPage = isRootLogin || path === '/' || path === '';
+
+  const hasLogoutLink = !!document.querySelector('a[href*="logout.php"]');
+  if (!isLoginPage && !hasLogoutLink && !document.querySelector('.floating-logout')) {
+    const currentScript = document.currentScript;
+    const scriptSrc = currentScript?.getAttribute('src') || '';
+    const appBase = scriptSrc.includes('/assets/js/')
+      ? scriptSrc.split('/assets/js/')[0].replace(/\/+$/, '')
+      : '';
+    const logout = document.createElement('a');
+    logout.className = 'btn floating-logout';
+    logout.href = `${appBase}/auth/logout.php`;
+    logout.textContent = 'Cerrar sesión';
+    logout.setAttribute('aria-label', 'Cerrar sesión');
+    body.appendChild(logout);
+  }
+
   // Limpia controles legado (claro/oscuro + etiqueta "Tema actual") si existen.
   const legacyLight = document.getElementById('modo-claro');
   const legacyDark = document.getElementById('modo-oscuro');
@@ -82,4 +101,10 @@
 
   applyDys(get(DYS_KEY) === '1');
   btnDis?.addEventListener('click', () => applyDys(!body.classList.contains('dyslexia-mode')));
+
+  const animatedItems = document.querySelectorAll('.card, .nav-links li a, table, .btn');
+  animatedItems.forEach((el, index) => {
+    el.style.animationDelay = `${Math.min(index * 45, 260)}ms`;
+    el.classList.add('reveal-item');
+  });
 })();
