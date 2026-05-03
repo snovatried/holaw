@@ -226,10 +226,17 @@ button, .btn, .nav-links li a, table, input, select, textarea {
 
 .floating-logout {
     position: fixed;
-    top: 14px;
-    right: 14px;
+    bottom: 14px;
+    left: 14px;
     z-index: 1100;
     box-shadow: 0 10px 22px var(--shadow);
+}
+
+@media (max-width: 700px) {
+    .floating-logout {
+        bottom: 72px;
+        left: 12px;
+    }
 }
 
 .floating-logout:hover {

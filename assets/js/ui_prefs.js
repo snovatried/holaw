@@ -9,16 +9,19 @@
   const set = (k, v) => { try { window.localStorage.setItem(k, v); } catch (_) {} };
 
   const path = window.location.pathname;
-  const isLoginPage = /\/index\.php$/.test(path) || path === '/' || path === '';
+  const isRootLogin = /\/index\.php$/.test(path) && !/\/dashboard\/index\.php$/.test(path);
+  const isLoginPage = isRootLogin || path === '/' || path === '';
 
   const hasLogoutLink = !!document.querySelector('a[href*="logout.php"]');
   if (!isLoginPage && !hasLogoutLink && !document.querySelector('.floating-logout')) {
-    const segments = path.split('/').filter(Boolean);
-    const depth = Math.max(segments.length - 1, 0);
-    const prefix = depth > 0 ? '../'.repeat(depth) : '';
+    const currentScript = document.currentScript;
+    const scriptSrc = currentScript?.getAttribute('src') || '';
+    const appBase = scriptSrc.includes('/assets/js/')
+      ? scriptSrc.split('/assets/js/')[0].replace(/\/+$/, '')
+      : '';
     const logout = document.createElement('a');
     logout.className = 'btn floating-logout';
-    logout.href = `${prefix}auth/logout.php`;
+    logout.href = `${appBase}/auth/logout.php`;
     logout.textContent = 'Cerrar sesión';
     logout.setAttribute('aria-label', 'Cerrar sesión');
     body.appendChild(logout);
