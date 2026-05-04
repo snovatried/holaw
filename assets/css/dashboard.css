@@ -5,8 +5,8 @@
     z-index: 1000;
     display: flex;
     align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
+    gap: 10px;
+    flex-wrap: nowrap;
     max-width: min(95vw, 560px);
     background: color-mix(in srgb, var(--surface) 82%, transparent);
     border: 1px solid var(--border);
@@ -67,6 +67,7 @@
 
 .dyslexia-btn {
     border: 1px solid var(--border);
+    margin-left: 2px;
 }
 
 .brand-slot {
@@ -180,6 +181,7 @@
         left: 12px;
         right: 12px;
         bottom: 10px;
+        flex-wrap: wrap;
     }
 }
 
