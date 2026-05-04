@@ -11,14 +11,15 @@
   const path = window.location.pathname;
   const isRootLogin = /\/index\.php$/.test(path) && !/\/dashboard\/index\.php$/.test(path);
   const isLoginPage = isRootLogin || path === '/' || path === '';
+  const isDashboardPage = /\/dashboard\/(index|admin|cuidador|paciente)\.php$/.test(path);
+  const currentScript = document.currentScript;
+  const scriptSrc = currentScript?.getAttribute('src') || '';
+  const appBase = scriptSrc.includes('/assets/js/')
+    ? scriptSrc.split('/assets/js/')[0].replace(/\/+$/, '')
+    : '';
 
   const hasLogoutLink = !!document.querySelector('a[href*="logout.php"]');
   if (!isLoginPage && !hasLogoutLink && !document.querySelector('.floating-logout')) {
-    const currentScript = document.currentScript;
-    const scriptSrc = currentScript?.getAttribute('src') || '';
-    const appBase = scriptSrc.includes('/assets/js/')
-      ? scriptSrc.split('/assets/js/')[0].replace(/\/+$/, '')
-      : '';
     const logout = document.createElement('a');
     logout.className = 'btn floating-logout';
     logout.href = `${appBase}/auth/logout.php`;
@@ -52,13 +53,16 @@
 
   if (!document.querySelector('.ui-tools')) {
     const panel = document.createElement('aside');
-    panel.className = 'ui-tools';
+    panel.className = `ui-tools${isDashboardPage ? ' ui-tools--dashboard' : ''}`;
     panel.setAttribute('aria-label', 'Herramientas visuales');
+    const logoutLink = document.querySelector('.topbar-actions a[href*="logout.php"], a[href*="logout.php"]');
+    const logoutHref = logoutLink?.getAttribute('href') || `${appBase}/auth/logout.php`;
     panel.innerHTML = `
       <div class="theme-switcher" role="group" aria-label="Selector de tema">
         <button type="button" class="theme-btn" id="modo-tema" aria-pressed="false">🌓 Cambiar tema</button>
       </div>
       <button type="button" class="theme-btn dyslexia-btn" id="modo-dislexia" aria-pressed="false">🅰️ Modo dislexia</button>
+      ${isDashboardPage ? `<a class="btn btn-secondary ui-tools-logout" href="${logoutHref}">Cerrar sesión</a>` : ''}
     `;
     body.appendChild(panel);
   }

@@ -182,3 +182,18 @@
         bottom: 10px;
     }
 }
+
+.ui-tools.ui-tools--dashboard {
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 6px;
+}
+
+.ui-tools.ui-tools--dashboard .theme-btn,
+.ui-tools.ui-tools--dashboard .ui-tools-logout {
+    white-space: nowrap;
+}
+
+.ui-tools.ui-tools--dashboard .theme-btn {
+    padding: 6px 10px;
+}
