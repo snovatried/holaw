@@ -1,4 +1,4 @@
-.ui-tools {
+.ui-tools.ui-tools--dashboard {
     position: fixed;
     bottom: 14px;
     right: 14px;
@@ -176,17 +176,22 @@
         flex-wrap: wrap;
     }
 
-    .ui-tools {
+    .ui-tools.ui-tools--dashboard {
         left: 12px;
         right: 12px;
         bottom: 10px;
+        flex-wrap: wrap;
     }
 }
 
 .ui-tools.ui-tools--dashboard {
     flex-wrap: nowrap;
     align-items: center;
-    gap: 6px;
+    gap: 10px;
+}
+
+.ui-tools.ui-tools--dashboard .dyslexia-btn {
+    margin-left: 2px;
 }
 
 .ui-tools.ui-tools--dashboard .theme-btn,
