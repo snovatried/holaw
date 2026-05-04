@@ -59,8 +59,6 @@ if ($rol === 'admin') {
             <label for="dosis">Dosis</label>
             <input id="dosis" name="dosis" placeholder="Dosis" required>
 
-            <label for="cantidad_total">Cantidad total</label>
-            <input id="cantidad_total" name="cantidad_total" type="number" min="1" required>
 
             <label for="fecha_vencimiento">Fecha de vencimiento</label>
             <input id="fecha_vencimiento" name="fecha_vencimiento" type="date" required>

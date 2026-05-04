@@ -15,7 +15,7 @@ if ($rol === 'admin') {
     $dashboard = '../dashboard/cuidador.php';
 }
 
-$stmt = $pdo->query('SELECT id_medicamento, nombre, tipo, dosis, cantidad_total, fecha_vencimiento FROM medicamentos ORDER BY nombre');
+$stmt = $pdo->query('SELECT id_medicamento, nombre, tipo, dosis, fecha_vencimiento FROM medicamentos ORDER BY nombre');
 $medicamentos = $stmt->fetchAll();
 $showSuccess = isset($_GET['ok']);
 ?>
@@ -48,13 +48,12 @@ $showSuccess = isset($_GET['ok']);
                 <th>Nombre</th>
                 <th>Tipo</th>
                 <th>Dosis</th>
-                <th>Cantidad</th>
                 <th>Vence</th>
             </tr>
         </thead>
         <tbody>
         <?php if (count($medicamentos) === 0): ?>
-            <tr><td colspan="6">No hay medicamentos registrados.</td></tr>
+            <tr><td colspan="5">No hay medicamentos registrados.</td></tr>
         <?php else: ?>
             <?php foreach ($medicamentos as $m): ?>
             <tr>
@@ -62,7 +61,6 @@ $showSuccess = isset($_GET['ok']);
                 <td><?= htmlspecialchars($m['nombre']) ?></td>
                 <td><?= htmlspecialchars((string) $m['tipo']) ?></td>
                 <td><?= htmlspecialchars((string) $m['dosis']) ?></td>
-                <td><?= htmlspecialchars((string) $m['cantidad_total']) ?></td>
                 <td><?= htmlspecialchars((string) $m['fecha_vencimiento']) ?></td>
             </tr>
             <?php endforeach; ?>
