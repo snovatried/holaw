@@ -376,9 +376,6 @@ $remitenteActual = obtenerRemitenteNotificacion($pdo);
     <section class="card">
         <h1>Configurar correos de notificación</h1>
         <p>Puedes guardar aquí los correos que recibirán avisos de dispenso.</p>
-        <p style="margin-top:8px;font-size:0.9rem;opacity:.85;">
-            Diagnóstico actual de PHP mail: <code><?= htmlspecialchars(diagnosticoMail()['resumen']) ?></code>
-        </p>
         <form method="POST" style="margin-top:8px;">
             <input type="hidden" name="accion" value="mostrar_diagnostico_correo">
             <button type="submit" class="btn btn-secondary">Mostrar diagnóstico completo de correo</button>
@@ -440,58 +437,6 @@ $remitenteActual = obtenerRemitenteNotificacion($pdo);
         </section>
 
         <p style="margin-top: 8px;"><strong>Sentencia SQL para test:</strong><br><code>UPDATE usuarios SET correo = 'aaronmachuca19@gmail.com';</code></p>
-
-        <?php if ($rol === 'admin' && $hasTablaRemitentes): ?>
-            <section class="card" style="margin-top:16px;">
-                <h2>Remitentes de salida (SMTP/mail)</h2>
-                <p>Configura varios correos remitentes y activa uno para los envíos.</p>
-                <form method="POST" style="display:flex;gap:8px;flex-wrap:wrap;align-items:end;">
-                    <input type="hidden" name="accion" value="agregar_remitente">
-                    <div>
-                        <label for="nombre_remitente">Nombre remitente</label>
-                        <input id="nombre_remitente" type="text" name="nombre_remitente" placeholder="Dispensador">
-                    </div>
-                    <div>
-                        <label for="correo_remitente">Correo remitente</label>
-                        <input id="correo_remitente" type="email" name="correo_remitente" placeholder="notificaciones@gmail.com" required>
-                    </div>
-                    <button type="submit">Guardar remitente</button>
-                </form>
-
-                <?php if (!empty($remitentes)): ?>
-                    <table style="margin-top:12px;">
-                        <thead>
-                        <tr>
-                            <th>Nombre</th>
-                            <th>Correo</th>
-                            <th>Estado</th>
-                            <th>Acción</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        <?php foreach ($remitentes as $r): ?>
-                            <tr>
-                                <td><?= htmlspecialchars((string) ($r['nombre_remitente'] ?: 'Sin nombre')) ?></td>
-                                <td><?= htmlspecialchars((string) $r['correo_remitente']) ?></td>
-                                <td><?= !empty($r['activo']) ? 'Activo' : 'Inactivo' ?></td>
-                                <td>
-                                    <?php if (empty($r['activo'])): ?>
-                                        <form method="POST">
-                                            <input type="hidden" name="accion" value="activar_remitente">
-                                            <input type="hidden" name="id_config" value="<?= (int) $r['id_config'] ?>">
-                                            <button type="submit">Activar</button>
-                                        </form>
-                                    <?php else: ?>
-                                        <span>En uso</span>
-                                    <?php endif; ?>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                <?php endif; ?>
-            </section>
-        <?php endif; ?>
 
         <?php if ($hasCorreo && !empty($usuarios)): ?>
             <table>
