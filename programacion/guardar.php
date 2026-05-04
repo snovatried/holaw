@@ -46,7 +46,7 @@ if ($hasIdPaciente) {
         $idCompartimento,
         $_POST['hora_dispenso'],
         $_POST['duracion_dias'],
-        $_POST['cantidad'],
+        1,
     ]);
 } else {
     $sql = 'INSERT INTO programacion (id_usuario, id_medicamento, id_compartimento, hora_dispenso, duracion_dias, cantidad) VALUES (?, ?, ?, ?, ?, ?)';
@@ -57,7 +57,7 @@ if ($hasIdPaciente) {
         $idCompartimento,
         $_POST['hora_dispenso'],
         $_POST['duracion_dias'],
-        $_POST['cantidad'],
+        1,
     ]);
 }
 
