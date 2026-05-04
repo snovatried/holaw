@@ -211,8 +211,6 @@ $programaciones = $stmtProgramaciones->fetchAll();
             <label for="duracion_dias">Durante cuántos días</label>
             <input id="duracion_dias" type="number" name="duracion_dias" min="1" placeholder="Ejemplo: 7" required>
 
-            <label for="cantidad">Cantidad</label>
-            <input id="cantidad" type="number" name="cantidad" min="1" required>
 
             <button type="submit">Programar</button>
         </form>
@@ -226,14 +224,13 @@ $programaciones = $stmtProgramaciones->fetchAll();
                     <th>Hora</th>
                     <th>Medicamento</th>
                     <th>Compartimento</th>
-                    <th>Cantidad</th>
                     <th>Duración (días)</th>
                     <th>Acción</th>
                 </tr>
             </thead>
             <tbody>
                 <?php if (count($programaciones) === 0): ?>
-                    <tr><td colspan="<?= $hasIdPaciente ? '7' : '6' ?>">No hay dispensos programados activos.</td></tr>
+                    <tr><td colspan="<?= $hasIdPaciente ? '6' : '5' ?>">No hay dispensos programados activos.</td></tr>
                 <?php else: ?>
                     <?php foreach ($programaciones as $p): ?>
                         <tr>
@@ -241,7 +238,6 @@ $programaciones = $stmtProgramaciones->fetchAll();
                             <td><?= htmlspecialchars((string) $p['hora_dispenso']) ?></td>
                             <td><?= htmlspecialchars((string) $p['medicamento']) ?></td>
                             <td><?= htmlspecialchars((string) ($p['id_compartimento'] ?: 'Sin compartimento')) ?></td>
-                            <td><?= htmlspecialchars((string) $p['cantidad']) ?></td>
                             <td><?= htmlspecialchars((string) ($p['duracion_dias'] ?: 'No especificada')) ?></td>
                             <td>
                                 <form method="POST" onsubmit="return confirm('¿Seguro que deseas borrar este dispenso programado?');" style="margin:0;">

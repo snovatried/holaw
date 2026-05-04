@@ -38,7 +38,7 @@ $stmt->execute([
     $_POST['nombre'],
     $tipo,
     $_POST['dosis'],
-    $_POST['cantidad_total'],
+    1,
     $_POST['fecha_vencimiento'],
 ]);
 
