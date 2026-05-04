@@ -12,14 +12,14 @@
   const isRootLogin = /\/index\.php$/.test(path) && !/\/dashboard\/index\.php$/.test(path);
   const isLoginPage = isRootLogin || path === '/' || path === '';
   const isDashboardPage = /\/dashboard\/(index|admin|cuidador|paciente)\.php$/.test(path);
+  const currentScript = document.currentScript;
+  const scriptSrc = currentScript?.getAttribute('src') || '';
+  const appBase = scriptSrc.includes('/assets/js/')
+    ? scriptSrc.split('/assets/js/')[0].replace(/\/+$/, '')
+    : '';
 
   const hasLogoutLink = !!document.querySelector('a[href*="logout.php"]');
   if (!isLoginPage && !hasLogoutLink && !document.querySelector('.floating-logout')) {
-    const currentScript = document.currentScript;
-    const scriptSrc = currentScript?.getAttribute('src') || '';
-    const appBase = scriptSrc.includes('/assets/js/')
-      ? scriptSrc.split('/assets/js/')[0].replace(/\/+$/, '')
-      : '';
     const logout = document.createElement('a');
     logout.className = 'btn floating-logout';
     logout.href = `${appBase}/auth/logout.php`;
